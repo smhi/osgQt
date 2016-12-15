@@ -62,7 +62,7 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
         exit(0);
     }
 
-    if (arguments.argc()<=1)
+    if (arguments.argc()<=2)
     {
         arguments.getApplicationUsage()->write(std::cout,osg::ApplicationUsage::COMMAND_LINE_OPTION);
     }
@@ -128,6 +128,8 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
       }
     }
     m_widget=addViewWidget(createCamera(0,0,100,100));
+    keyswitchManipulator->selectMatrixManipulator(0);
+    //setCameraManipulator( keyswitchManipulator.get(), false );
     
     addEventHandler(new osgViewer::StatsHandler());
     addEventHandler( new osgGA::StateSetManipulator(getCamera()->getOrCreateStateSet()) );
@@ -249,6 +251,14 @@ void MainWidget::openFile()
       fileName = QFileDialog::getOpenFileName(this,"Open File", fileName, "Model Files (*.ive)");
     } else {
       fileName = QFileDialog::getOpenFileName(this,"Open File", QString(), "Model Files (*.ive)");
+    }
+    if (!fileName.isEmpty())  
+    {
+      setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+    }
+    else
+    {
+      setWindowTitle("osgQtWidget");
     }
     m_updateOperation->updateScene(fileName.toStdString());
 }

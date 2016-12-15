@@ -51,6 +51,7 @@ class UpdateOperation : public osg::Operation
   UpdateOperation();
   void updateScene(const std::string&);
   void operator () (osg::Object* callingObject);
+  std::string getNodeFileName();
  private:
   std::string m_nodeFileName;
   bool m_loadedFlag;
@@ -69,6 +70,7 @@ class MainWidget:public QMainWindow
   void dropEvent(QDropEvent *event);
  protected slots:
   void openFile();
+  void filequit();
 
  private:
   QScopedPointer<ViewerFrameThread> m_viewThread;

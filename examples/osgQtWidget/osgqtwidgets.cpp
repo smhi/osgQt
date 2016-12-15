@@ -222,9 +222,15 @@ MainWidget::MainWidget(int argc, char *argv[])
     setAcceptDrops(true);
 
     QMenu* fileMenu = menuBar()->addMenu("&File");
-    QAction* openAct = new QAction("&Open",this);
+    QAction* openAct = new QAction("&Open...",this);
+    QAction* fileQuitAction = new QAction("&Quit...", this );
+    fileQuitAction->setShortcut(Qt::CTRL+Qt::Key_Q);
+    fileQuitAction->setShortcutContext(Qt::ApplicationShortcut);
     fileMenu->addAction(openAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
+    connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
 }
 
 void MainWidget::dropEvent( QDropEvent *event )
@@ -237,9 +243,20 @@ void MainWidget::dropEvent( QDropEvent *event )
 
 void MainWidget::openFile()
 {
-    const QString fileName = QFileDialog::getOpenFileName(this,
-                                                          "Open File", QString(), "STL Files (*.*)");
+    
+    QString fileName = m_updateOperation->getNodeFileName().c_str();
+    if(!fileName.isEmpty()) {
+      fileName = QFileDialog::getOpenFileName(this,"Open File", fileName, "Model Files (*.ive)");
+    } else {
+      fileName = QFileDialog::getOpenFileName(this,"Open File", QString(), "Model Files (*.ive)");
+    }
     m_updateOperation->updateScene(fileName.toStdString());
+}
+
+void MainWidget::filequit()
+{
+  // quit sends aboutToQuit SIGNAL, which is connected to slot writeLogFile
+  QApplication::exit(0);
 }
 
 void MainWidget::dragEnterEvent( QDragEnterEvent *event )
@@ -272,6 +289,7 @@ void UpdateOperation::operator()( osg::Object* callingObject )
     OsgWidget* viewer = dynamic_cast<OsgWidget*>(callingObject);
     if (viewer&&!m_nodeFileName.empty()){
         OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_mutex);
+        QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
         osgDB::ReaderWriter::ReadResult r = osgDB::readNodeFile (m_nodeFileName);
         osg::ref_ptr<osg::Node> node = r.getNode();
         if(node){
@@ -281,7 +299,13 @@ void UpdateOperation::operator()( osg::Object* callingObject )
             OSG_WARN<<m_nodeFileName<<" load failed.\n";
         }
         m_loadedFlag=true;
+        QApplication::restoreOverrideCursor();
     }
+}
+
+std::string UpdateOperation::getNodeFileName()
+{
+  return m_nodeFileName;
 }
 
 ViewerFrameThread::~ViewerFrameThread()

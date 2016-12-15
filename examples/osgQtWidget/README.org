@@ -1,0 +1,20 @@
+* osgQtWidget
+
+
+embed osg in a qt application
+
+	
+** 类介绍
+
+osg自带了三个与qt交互的例子：osgQtBrowser,osgQtWidgets,osgviewerQt，这些例子中都是以osg为主窗口。在开发过程中，发现在qt程序中嵌入osg页面总会出现各种问题，比如在更新场景内容时，经常会出现线程数据访问冲突或模型无法渲染的问题（在qt中嵌入osg页面推荐单独开一个线程用于osg的场景渲染）。结合osgthreadedterrain示例程序，做了一个示例程序来说明在Qt嵌入osg页面以及动态更新场景数据的正常方法。
+
+    1. class ViewerFrameThread;线程类用于驱动osg的帧循环
+
+    2. class OsgWidget;osg视图类，可将场景渲染到QWidget上。  QWidget* getWidget()方法可将osg嵌入到Qt程序中。
+
+    3. class UpdateOperation;更新操作类，osg会在裁剪和绘制场景之前调用所有的更新操作类。在更新操作类中添加新的节点可以避免数据冲突。
+
+    4. class MainWidget;qt主窗口类
+    
+** CMake 文件
+CMakeLists.txt 文件演示了使用CMake 管理Qt项目的方法。

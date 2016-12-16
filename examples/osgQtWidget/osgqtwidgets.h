@@ -36,7 +36,7 @@ class OsgWidget :public osgViewer::Viewer
   QWidget* getWidget();
   void updateScene(osg::Node*);
  protected:
-  QWidget* addViewWidget(osg::Camera*);
+  QWidget* addViewWidget(osg::Camera*,osgGA::CameraManipulator* manipulator);
   osg::Camera* createCamera( int x, int y, int w, int h );
 
  private:
@@ -51,10 +51,11 @@ class UpdateOperation : public osg::Operation
   UpdateOperation();
   void updateScene(const std::string&);
   void operator () (osg::Object* callingObject);
-  std::string getNodeFileName();
+  std::string getNodeFileName(); 
  private:
   std::string m_nodeFileName;
   bool m_loadedFlag;
+  bool m_newScene;
   OpenThreads::Mutex                  _mutex;
 };
  

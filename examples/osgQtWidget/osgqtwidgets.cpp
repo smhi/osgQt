@@ -127,8 +127,12 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
         ++keyForAnimationPath;
       }
     }
-    m_widget=addViewWidget(createCamera(0,0,100,100));
     keyswitchManipulator->selectMatrixManipulator(0);
+    m_widget=addViewWidget(createCamera(0, 0, 1024, 768), keyswitchManipulator.get());
+    
+    getCameraManipulator()->computeHomePosition(getCamera(),true);
+    getCameraManipulator()->home(0);
+   
     //setCameraManipulator( keyswitchManipulator.get(), false );
     
     addEventHandler(new osgViewer::StatsHandler());
@@ -139,10 +143,10 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
     addEventHandler(new osgViewer::ThreadingHandler);
 
     // add the window size toggle handler
-    // addEventHandler(new osgViewer::WindowSizeHandler);
+    //addEventHandler(new osgViewer::WindowSizeHandler);
 
     // add the help handler
-    // addEventHandler(new osgViewer::HelpHandler(arguments.getApplicationUsage()));
+    //addEventHandler(new osgViewer::HelpHandler(arguments.getApplicationUsage()));
 
     // add the record camera path handler
     addEventHandler(new osgViewer::RecordCameraPathHandler);
@@ -156,10 +160,10 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
     setSceneData(m_root);
 }
 
-QWidget* OsgWidget::addViewWidget(osg::Camera* camera)
+QWidget* OsgWidget::addViewWidget(osg::Camera* camera, osgGA::CameraManipulator* manipulator)
 {
     setCamera( camera );
-    setCameraManipulator( new osgGA::TrackballManipulator() );
+    setCameraManipulator( manipulator, true );
 
     osgQt::GraphicsWindowQt* gw = dynamic_cast<osgQt::GraphicsWindowQt*>( camera->getGraphicsContext() );
     return gw ? gw->getGLWidget() : NULL;
@@ -205,7 +209,6 @@ void OsgWidget::updateScene( osg::Node* node)
         m_root->replaceChild(m_root->getChild(0),node);
     else
         m_root->addChild(node);
-        getCameraManipulator()->home(0);
 }
 
 MainWidget::MainWidget(int argc, char *argv[])
@@ -215,7 +218,7 @@ MainWidget::MainWidget(int argc, char *argv[])
     
     OsgWidget* viewer=new OsgWidget(arguments);
     QWidget* widget=viewer->getWidget();
-    widget->setMinimumSize(QSize(100,100));
+    widget->setMinimumSize(QSize(1024, 768));
     setCentralWidget(widget);
     m_viewThread.reset(new ViewerFrameThread(viewer,true));
     m_updateOperation=new UpdateOperation();
@@ -233,6 +236,7 @@ MainWidget::MainWidget(int argc, char *argv[])
     fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
     connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
+    setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
 
 void MainWidget::dropEvent( QDropEvent *event )
@@ -256,10 +260,6 @@ void MainWidget::openFile()
     {
       setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
-    else
-    {
-      setWindowTitle("osgQtWidget");
-    }
     m_updateOperation->updateScene(fileName.toStdString());
 }
 
@@ -277,7 +277,7 @@ void MainWidget::dragEnterEvent( QDragEnterEvent *event )
 
 UpdateOperation::UpdateOperation()
     :osg::Operation("update operation",true)
-    ,m_loadedFlag(true)
+    ,m_loadedFlag(true),m_newScene(false)
 {
 
 }
@@ -294,8 +294,16 @@ void UpdateOperation::updateScene( const std::string& name)
 void UpdateOperation::operator()( osg::Object* callingObject )
 {
     // decided which method to call according to whole has called me.
-    if(m_loadedFlag)
-        return;
+    
+    if(m_loadedFlag) {
+      if (m_newScene) {
+        OsgWidget* viewer = dynamic_cast<OsgWidget*>(callingObject);
+        viewer->getCameraManipulator()->computeHomePosition(viewer->getCamera(),true);
+        viewer->getCameraManipulator()->home(0);
+        m_newScene=false;
+      }
+      return;
+    }
     OsgWidget* viewer = dynamic_cast<OsgWidget*>(callingObject);
     if (viewer&&!m_nodeFileName.empty()){
         OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_mutex);
@@ -303,7 +311,9 @@ void UpdateOperation::operator()( osg::Object* callingObject )
         osgDB::ReaderWriter::ReadResult r = osgDB::readNodeFile (m_nodeFileName);
         osg::ref_ptr<osg::Node> node = r.getNode();
         if(node){
+            viewer->getCameraManipulator()->setNode(node);
             viewer->updateScene(node);
+            m_newScene=true;
             OSG_WARN<<m_nodeFileName<<" load successfully.\n";
         }else{
             OSG_WARN<<m_nodeFileName<<" load failed.\n";

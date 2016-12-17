@@ -36,6 +36,13 @@
 
 #include <memory>
 
+#include "back.xpm"
+#include "start.xpm"
+#include "stopp.xpm"
+#include "slutt.xpm"
+#include "loop.xpm"
+#include "forward.xpm"
+
 OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(arguments)
 {
     arguments.getApplicationUsage()->setApplicationName(arguments.getApplicationName());
@@ -211,7 +218,7 @@ void OsgWidget::updateScene( osg::Node* node)
         m_root->addChild(node);
 }
 
-MainWidget::MainWidget(int argc, char *argv[])
+MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),currentIndex(0)
 {
     // Parse the arguments and send to viewer implementation
     osg::ArgumentParser arguments(&argc,argv);
@@ -227,8 +234,8 @@ MainWidget::MainWidget(int argc, char *argv[])
     setAcceptDrops(true);
 
     QMenu* fileMenu = menuBar()->addMenu("&File");
-    QAction* openAct = new QAction("&Open...",this);
-    QAction* fileQuitAction = new QAction("&Quit...", this );
+    openAct = new QAction("&Open...",this);
+    fileQuitAction = new QAction("&Quit...", this );
     fileQuitAction->setShortcut(Qt::CTRL+Qt::Key_Q);
     fileQuitAction->setShortcutContext(Qt::ApplicationShortcut);
     fileMenu->addAction(openAct);
@@ -236,6 +243,61 @@ MainWidget::MainWidget(int argc, char *argv[])
     fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
     connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
+    // timecommands ======================
+  // --------------------------------------------------------------------
+  timeBackwardAction = new QAction(QIcon( QPixmap(start_xpm )),tr("Run Backwards"), this);
+  timeBackwardAction->setShortcutContext(Qt::ApplicationShortcut);
+  timeBackwardAction->setShortcut(Qt::SHIFT+Qt::CTRL+Qt::Key_Left);
+  timeBackwardAction->setCheckable(true);
+  timeBackwardAction->setIconVisibleInMenu(true);
+  connect( timeBackwardAction, SIGNAL( triggered() ) ,  SLOT( animationBack() ) );
+  // --------------------------------------------------------------------
+  timeForewardAction = new QAction(QIcon( QPixmap(slutt_xpm )),tr("Run Forewards"), this );
+  timeForewardAction->setShortcutContext(Qt::ApplicationShortcut);
+  timeForewardAction->setShortcut(Qt::SHIFT+Qt::CTRL+Qt::Key_Right);
+  timeForewardAction->setCheckable(true);
+  timeForewardAction->setIconVisibleInMenu(true);
+  connect( timeForewardAction, SIGNAL( triggered() ) ,  SLOT( animation() ) );
+  // --------------------------------------------------------------------
+  timeStepBackwardAction = new QAction(QIcon( QPixmap(back_xpm )),tr("Step Backwards"), this );
+  timeStepBackwardAction->setShortcut(Qt::CTRL+Qt::Key_Left);
+  timeStepBackwardAction->setCheckable(false);
+  timeStepBackwardAction->setIconVisibleInMenu(true);
+  connect( timeStepBackwardAction, SIGNAL( triggered() ) ,  SLOT( stepback() ) );
+  // --------------------------------------------------------------------
+  timeStepForewardAction = new QAction(QIcon( QPixmap(forward_xpm )),tr("Step Forewards"), this );
+  timeStepForewardAction->setShortcut(Qt::CTRL+Qt::Key_Right);
+  timeStepForewardAction->setCheckable(false);
+  timeStepForewardAction->setIconVisibleInMenu(true);
+  connect( timeStepForewardAction, SIGNAL( triggered() ) ,  SLOT( stepforward() ) );
+  // --------------------------------------------------------------------
+  timeStopAction = new QAction(QIcon( QPixmap(stop_xpm )),tr("Stop"), this );
+  timeStopAction->setShortcutContext(Qt::ApplicationShortcut);
+  timeStopAction->setShortcut(Qt::SHIFT+Qt::CTRL+Qt::Key_Down);
+  timeStopAction->setCheckable(false);
+  timeStopAction->setIconVisibleInMenu(true);
+  connect( timeStopAction, SIGNAL( triggered() ) ,  SLOT( animationStop() ) );
+  // --------------------------------------------------------------------
+  timeLoopAction = new QAction(QIcon( QPixmap(loop_xpm )),tr("Run in loop"), this );
+  timeLoopAction->setShortcutContext(Qt::ApplicationShortcut);
+  timeLoopAction->setShortcut(Qt::SHIFT+Qt::CTRL+Qt::Key_Up);
+  timeLoopAction->setCheckable(true);
+  timeLoopAction->setIconVisibleInMenu(true);
+  connect( timeLoopAction, SIGNAL( triggered() ) ,  SLOT( animationLoop() ) );
+  
+  timerToolbar= new QToolBar("TimerToolBar",this);
+  
+  timerToolbar->setObjectName("TimerToolBar");
+  
+  addToolBar(Qt::TopToolBarArea,timerToolbar);
+
+  timerToolbar->addAction( timeBackwardAction    );
+  timerToolbar->addAction( timeStepBackwardAction );
+  timerToolbar->addAction( timeStepForewardAction );
+  timerToolbar->addAction( timeForewardAction  );
+  timerToolbar->addAction( timeStopAction      );
+  timerToolbar->addAction( timeLoopAction        );  
+  
     setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
 
@@ -250,14 +312,18 @@ void MainWidget::dropEvent( QDropEvent *event )
 void MainWidget::openFile()
 {
     
+    QStringList fileNames;
     QString fileName = m_updateOperation->getNodeFileName().c_str();
     if(!fileName.isEmpty()) {
-      fileName = QFileDialog::getOpenFileName(this,"Open File", fileName, "Model Files (*.ive)");
+      fileNames = QFileDialog::getOpenFileNames(this,"Open File", fileName, "Model Files (*.ive)");
     } else {
-      fileName = QFileDialog::getOpenFileName(this,"Open File", QString(), "Model Files (*.ive)");
+      fileNames = QFileDialog::getOpenFileNames(this,"Open File", QString(), "Model Files (*.ive)");
     }
-    if (!fileName.isEmpty())  
+    if (!fileNames.isEmpty())  
     {
+      m_fileNames = fileNames;
+      currentIndex = 0;
+      fileName = fileNames.at(currentIndex);
       setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
     m_updateOperation->updateScene(fileName.toStdString());
@@ -267,6 +333,91 @@ void MainWidget::filequit()
 {
   // quit sends aboutToQuit SIGNAL, which is connected to slot writeLogFile
   QApplication::exit(0);
+}
+
+void MainWidget::stopAnimation()
+{
+  timeBackwardAction->setChecked( false );
+  timeForewardAction->setChecked( false );
+
+  //killTimer(animationTimer);
+  timeron=0;
+
+}
+
+void MainWidget::animationLoop()
+{
+  timeloop= !timeloop;
+  //tslider->setLoop(timeloop);
+
+  timeLoopAction->setChecked( timeloop );
+}
+
+void MainWidget::timerEvent(QTimerEvent *e)
+{
+  /*
+  if (e->timerId()==animationTimer){
+    miutil::miTime t;
+    if (!tslider->nextTime(timeron, t, true)){
+      stopAnimation();
+      return;
+    }
+    setPlotTime(t);
+  }
+  */
+}
+
+void MainWidget::animation()
+{
+  if (timeron!=0)
+    stopAnimation();
+
+  timeForewardAction->setChecked( true );
+
+  //animationTimer= startTimer(timeout_ms);
+  timeron=1;
+}
+
+void MainWidget::animationBack()
+{
+  if (timeron!=0)
+    stopAnimation();
+
+  timeBackwardAction->setChecked( true );
+  /*
+  tslider->startAnimation();
+  animationTimer= startTimer(timeout_ms);
+  */
+  timeron=-1;
+}
+
+void MainWidget::animationStop()
+{
+  stopAnimation();
+}
+
+void MainWidget::stepforward()
+{
+  if (timeron) return;
+  if (!m_fileNames.size()) return;
+  currentIndex++;
+  if (currentIndex > m_fileNames.size() - 1)
+    currentIndex = 0;
+  QString fileName = m_fileNames.at(currentIndex);
+  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+  m_updateOperation->updateScene(fileName.toStdString());
+}
+
+void MainWidget::stepback()
+{
+  if (timeron) return;
+  if (!m_fileNames.size()) return;
+  currentIndex--;
+  if (currentIndex < 0)
+    currentIndex = m_fileNames.size() - 1;
+  QString fileName = m_fileNames.at(currentIndex);
+  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+  m_updateOperation->updateScene(fileName.toStdString());
 }
 
 void MainWidget::dragEnterEvent( QDragEnterEvent *event )

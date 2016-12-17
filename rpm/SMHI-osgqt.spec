@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.5.6
-%define release 1.0
+%define release 1.1
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}

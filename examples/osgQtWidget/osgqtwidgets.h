@@ -9,6 +9,7 @@
 #include <OpenThreads/Thread>
 #include <osg/Light>
 #include <QThread>
+#include <QStringList>
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
 class ViewerFrameThread : public QThread
@@ -72,9 +73,30 @@ class MainWidget:public QMainWindow
  protected slots:
   void openFile();
   void filequit();
+  void stopAnimation();
+  void animationLoop();
 
+  void timerEvent(QTimerEvent *e);
+  void animation();
+  void animationBack();
+  void animationStop();
+  void stepforward();
+  void stepback();
  private:
   QScopedPointer<ViewerFrameThread> m_viewThread;
   osg::ref_ptr<UpdateOperation> m_updateOperation;
+  int timeron;
+  bool timeloop;
+  int currentIndex;
+  QStringList m_fileNames;
+  QToolBar * timerToolbar;
+  QAction * openAct;
+  QAction * fileQuitAction;
+  QAction * timeBackwardAction;
+  QAction * timeForewardAction;
+  QAction * timeStepBackwardAction;
+  QAction * timeStepForewardAction;
+  QAction * timeStopAction;
+  QAction * timeLoopAction;
 };
 #endif // _OSGWIDGET_H_

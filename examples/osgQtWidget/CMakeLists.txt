@@ -27,6 +27,15 @@ SET(TARGET_SRC
 SET(TARGET_H
   osgqtwidgets.h
   )
+  
+SET(TARGET_IMG
+  back.xpm
+  forward.xpm
+  loop.xpm
+  slutt.xpm
+  start.xpm
+  stopp.xpm
+)
 
 
 SET(TARGET_ADDED_LIBRARIES

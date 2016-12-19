@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.5.6
-%define release 1.1
+%define release 1.2
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}
@@ -54,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Dec 15 2016 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+* Mon Dec 19 2016 Yngve Einarsson <Yngve.Einarsson@smhi.se>
 - Initial build.
+- Step, sequence, drag and drop and help.
 

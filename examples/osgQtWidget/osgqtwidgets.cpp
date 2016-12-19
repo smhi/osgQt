@@ -43,6 +43,8 @@
 #include "loop.xpm"
 #include "forward.xpm"
 
+bool MainWidget::inUpdate = false;
+
 OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(arguments)
 {
     arguments.getApplicationUsage()->setApplicationName(arguments.getApplicationName());
@@ -212,13 +214,17 @@ void OsgWidget::updateScene( osg::Node* node)
     osgUtil::Optimizer optimizer;
     optimizer.optimize(node);
     
-    if(m_root->getNumChildren())
-        m_root->replaceChild(m_root->getChild(0),node);
-    else
+    if(m_root->getNumChildren()) {
+        m_root->replaceChild(m_root->getChild(0),node);        
+    } else {
         m_root->addChild(node);
+    }
+    setSceneData(m_root);
+    requestRedraw();
+    getWidget()->update();
 }
 
-MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),currentIndex(0)
+MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),currentIndex(0),timeout_ms(1000)
 {
     // Parse the arguments and send to viewer implementation
     osg::ArgumentParser arguments(&argc,argv);
@@ -243,6 +249,14 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
     fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
     connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
+    
+    QMenu* helpMenu = menuBar()->addMenu("&Help");
+    helpDocAction = new QAction( tr("Q&uick help"), this );
+    helpDocAction->setShortcutContext(Qt::ApplicationShortcut);
+    helpDocAction->setShortcut(Qt::Key_F1);
+    helpDocAction->setCheckable(false);
+    helpMenu->addAction(helpDocAction);
+    connect( helpDocAction, SIGNAL( triggered() ) ,  SLOT( showHelp() ) );
     // timecommands ======================
   // --------------------------------------------------------------------
   timeBackwardAction = new QAction(QIcon( QPixmap(start_xpm )),tr("Run Backwards"), this);
@@ -305,7 +319,9 @@ void MainWidget::dropEvent( QDropEvent *event )
 {
     if(event->mimeData()->hasFormat("text/uri-list")){
         QString fileName = event->mimeData()->urls().first().toLocalFile();
+        m_fileNames.append(fileName);
         m_updateOperation->updateScene(fileName.toStdString());
+        setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
 }
 
@@ -335,12 +351,102 @@ void MainWidget::filequit()
   QApplication::exit(0);
 }
 
+void MainWidget::showHelp()
+{
+  QWidget * widget = new QWidget;
+  widget->setLayout(new QVBoxLayout);
+
+  QString text = 
+               QString("Menu commands:\n") +
+               QString("File                Opens a multi selection file open dialog the select what models you will se.\n") +
+               QString("Quit                Exits the application.\n") +
+               QString("Help                Show this help text.\n") +              
+               QString("\n\n\n")+
+               QString("Menu buttons:\n") +
+               QString("<<:                 Run backwards, no wrap around.\n") +
+               QString("<-:                 Step backward, wrap around.\n") +
+               QString("->:                 Step forward.\n") +
+               QString(">>:                 Run forwards, no wrap around\n") +
+               QString("[]:                 Stop animation\n") +
+               QString("@:                  Loop (animate in a loop)\n\n\n") +
+               QString("Drag and drop:      You can drag an icon from the file manager and drop it in the main window in order to display the model.\n\n\n") +
+               QString("Key you may use to change the viewers behaviour:\n\n") + 
+               QString("*                   Increase LODScale. \n") + 
+               QString("/                   Decrease LODScale.\n") + 
+               QString("1                   Select 'Trackball' camera manipulator (default).\n") +
+               QString("2                   Select 'Flight' camera manipulator.\n") +
+               QString("3                   Select 'Drive' camera manipulator.\n") +
+               QString("4                   Select 'Terrain' camera manipulator.\n") +
+               QString("5                   Select 'Orbit' camera manipulator.\n") +
+               QString("6                   Select 'First Person' camera manipulator.\n") +
+               QString("7                   Select 'Sperical' camera manipulator.\n") +
+               QString("<                   Decrease the screen resulotion (in Windowed mode).\n") +
+               QString(">                   Increase the screen resulotion (in Windowed mode).\n") +
+               QString("Drive: Down         Cursor down key to look downwards.\n") +
+               QString("Drive: Space        Reset the viewing position to home.\n") +
+               QString("Drive: Up           Cursor up key to look upwards.\n") +
+               QString("Drive: a            Use mouse middle, right buttons for speed.\n") +
+               QString("First Person: Space Reset the viewing position to home.\n") +
+               QString("Flight: Space       Reset the viewing position to home.\n") +
+               QString("Flight: a           No yaw when banked.\n") +
+               QString("Flight: q           Automatically yaw when banked (default).\n") +
+               QString("S                   Output stats to console.\n") +
+               QString("Spherical: ALT      Rotates horizontally only.\n") +
+               QString("Spherical: SHIFT    Rotates vertically only.\n") +
+               QString("Spherical: Space    Reset the viewing position to home.\n") +
+               QString("Terrain: Space      Reset the viewing position to home.\n") +
+               QString("Tractball: Space    Reset the viewing position to home.\n") +
+               QString("Z                   Toggle camera path playback.\n") +
+               QString("b                   Toggle backface culling.\n") +
+               QString("c                   Take screenshot.\n") +
+               QString("e                   Toggle the placement off the end of frame barrier.\n") +
+               QString("l                   Toggle lightning.\n") +
+               QString("m                   Toggle threading modell.\n") +
+               QString("s                   On screen stats.\n") +
+               QString("t                   Toggle texturing.\n") +
+               QString("w                   Toggle polygon fill mode between fill, line and points.\n") +
+               QString("\n\n\n")+
+               QString("Use t + mouse move up or down to change texuring.\n") +
+               QString("Use a + mouse move up or down to change transparency.\n") +
+               QString("ESC                 Exits the application.\n\n\n");
+               
+               
+  
+  QLabel* label = new QLabel(text);
+  label->setWordWrap(true);
+  label->setTextInteractionFlags(Qt::TextEditorInteraction);
+
+  QPalette palette = label->palette();
+  palette.setColor(QPalette::Highlight, Qt::darkBlue);
+  palette.setColor(QPalette::HighlightedText, Qt::white);
+  label->setPalette(palette);
+
+  QScrollArea* scrollArea = new QScrollArea;
+  scrollArea->setWidget(label);
+
+  widget->layout()->addWidget(scrollArea);
+
+  widget->setGeometry(50, 50, 1020, 764);
+  
+  QGraphicsScene * graphicsScene = new QGraphicsScene;
+  graphicsScene->addWidget(widget);
+
+  QGraphicsView* graphicsView = new QGraphicsView;
+  graphicsView->setScene(graphicsScene);
+
+  QMainWindow* mainWindow = new QMainWindow;
+  mainWindow->setCentralWidget(graphicsView);
+  mainWindow->setGeometry(50, 50, 1024, 768);
+  mainWindow->show();
+  mainWindow->raise();
+}
+
 void MainWidget::stopAnimation()
 {
   timeBackwardAction->setChecked( false );
   timeForewardAction->setChecked( false );
-
-  //killTimer(animationTimer);
+  killTimer(animationTimer);
+  currentIndex = 0;
   timeron=0;
 
 }
@@ -348,23 +454,48 @@ void MainWidget::stopAnimation()
 void MainWidget::animationLoop()
 {
   timeloop= !timeloop;
-  //tslider->setLoop(timeloop);
-
   timeLoopAction->setChecked( timeloop );
 }
 
 void MainWidget::timerEvent(QTimerEvent *e)
 {
-  /*
   if (e->timerId()==animationTimer){
-    miutil::miTime t;
-    if (!tslider->nextTime(timeron, t, true)){
-      stopAnimation();
-      return;
+    if(MainWidget::inUpdate) return;
+    if (!timeloop) {
+      if (timeron == 1) {
+        // stop animation if end of stringlist
+        currentIndex++;
+        if (currentIndex > m_fileNames.size() - 1) {
+          stopAnimation();
+          return;
+        }
+      } else if (timeron == -1) {
+        // stop animation if beginning of stringlist
+        currentIndex--;
+        if (currentIndex < 0) {
+          currentIndex = m_fileNames.size() - 1;
+          stopAnimation();
+          return;
+        }
+      }
+    } else {
+      if (timeron == 1) {
+        // loop to the beginning if end of stringlist
+        currentIndex++;
+        if (currentIndex > m_fileNames.size() - 1)
+          currentIndex = 0;
+      } else if (timeron == -1) {
+        // loop to the end if beginning of stringlist
+        currentIndex--;
+        if (currentIndex < 0)
+          currentIndex = m_fileNames.size() - 1;
+      }
     }
-    setPlotTime(t);
+    MainWidget::inUpdate = true;
+    QString fileName = m_fileNames.at(currentIndex);    
+    m_updateOperation->updateScene(fileName.toStdString());
+    setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
   }
-  */
 }
 
 void MainWidget::animation()
@@ -373,8 +504,8 @@ void MainWidget::animation()
     stopAnimation();
 
   timeForewardAction->setChecked( true );
-
-  //animationTimer= startTimer(timeout_ms);
+  //currentIndex = 0;
+  animationTimer= startTimer(timeout_ms);
   timeron=1;
 }
 
@@ -384,10 +515,8 @@ void MainWidget::animationBack()
     stopAnimation();
 
   timeBackwardAction->setChecked( true );
-  /*
-  tslider->startAnimation();
+  //currentIndex = m_fileNames.size() - 1;
   animationTimer= startTimer(timeout_ms);
-  */
   timeron=-1;
 }
 
@@ -404,8 +533,8 @@ void MainWidget::stepforward()
   if (currentIndex > m_fileNames.size() - 1)
     currentIndex = 0;
   QString fileName = m_fileNames.at(currentIndex);
-  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
   m_updateOperation->updateScene(fileName.toStdString());
+  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
 }
 
 void MainWidget::stepback()
@@ -416,8 +545,8 @@ void MainWidget::stepback()
   if (currentIndex < 0)
     currentIndex = m_fileNames.size() - 1;
   QString fileName = m_fileNames.at(currentIndex);
-  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
   m_updateOperation->updateScene(fileName.toStdString());
+  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
 }
 
 void MainWidget::dragEnterEvent( QDragEnterEvent *event )
@@ -451,7 +580,9 @@ void UpdateOperation::operator()( osg::Object* callingObject )
         OsgWidget* viewer = dynamic_cast<OsgWidget*>(callingObject);
         viewer->getCameraManipulator()->computeHomePosition(viewer->getCamera(),true);
         viewer->getCameraManipulator()->home(0);
+        viewer->requestRedraw();
         m_newScene=false;
+        MainWidget::inUpdate = false;
       }
       return;
     }
@@ -471,6 +602,7 @@ void UpdateOperation::operator()( osg::Object* callingObject )
         }
         m_loadedFlag=true;
         QApplication::restoreOverrideCursor();
+        
     }
 }
 

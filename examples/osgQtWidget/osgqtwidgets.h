@@ -10,6 +10,7 @@
 #include <osg/Light>
 #include <QThread>
 #include <QStringList>
+#include <QTimer>
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
 class ViewerFrameThread : public QThread
@@ -65,6 +66,7 @@ class MainWidget:public QMainWindow
     Q_OBJECT
  public:
   MainWidget(int argc, char *argv[]);
+  static bool inUpdate;
  protected:
  
   void dragEnterEvent(QDragEnterEvent *event);
@@ -73,6 +75,7 @@ class MainWidget:public QMainWindow
  protected slots:
   void openFile();
   void filequit();
+  void showHelp();
   void stopAnimation();
   void animationLoop();
 
@@ -87,11 +90,14 @@ class MainWidget:public QMainWindow
   osg::ref_ptr<UpdateOperation> m_updateOperation;
   int timeron;
   bool timeloop;
+  int animationTimer;        ///> the main timer id
+  int timeout_ms;            ///> animation timeout in millisecs
   int currentIndex;
   QStringList m_fileNames;
   QToolBar * timerToolbar;
   QAction * openAct;
   QAction * fileQuitAction;
+  QAction * helpDocAction;
   QAction * timeBackwardAction;
   QAction * timeForewardAction;
   QAction * timeStepBackwardAction;

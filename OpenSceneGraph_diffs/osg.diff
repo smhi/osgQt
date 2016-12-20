@@ -1,0 +1,426 @@
+diff --git a/examples/osgvolume/osgvolume.cpp b/examples/osgvolume/osgvolume.cpp
+index e0df891..db67a91 100644
+--- a/examples/osgvolume/osgvolume.cpp
++++ b/examples/osgvolume/osgvolume.cpp
+@@ -420,9 +420,12 @@ int main( int argc, char **argv )
+     arguments.getApplicationUsage()->addCommandLineOption("--s_maxTextureSize <size>","Set the texture maximum resolution in the s (x) dimension.");
+     arguments.getApplicationUsage()->addCommandLineOption("--t_maxTextureSize <size>","Set the texture maximum resolution in the t (y) dimension.");
+     arguments.getApplicationUsage()->addCommandLineOption("--r_maxTextureSize <size>","Set the texture maximum resolution in the r (z) dimension.");
++    arguments.getApplicationUsage()->addCommandLineOption("--modulate-alpha-by-colour <colourModulate.x()> <colourModulate.y()> <colourModulate.z()> <colourModulate.w()>","For each pixel multiply the alpha value by the color.");
+     arguments.getApplicationUsage()->addCommandLineOption("--modulate-alpha-by-luminance","For each pixel multiply the alpha value by the luminance.");
+     arguments.getApplicationUsage()->addCommandLineOption("--replace-alpha-with-luminance","For each pixel set the alpha value to the luminance.");
++    arguments.getApplicationUsage()->addCommandLineOption("--replace-alpha-with-luminance-inverted","For each pixel set the alpha value to 1-luminance.");
+     arguments.getApplicationUsage()->addCommandLineOption("--replace-rgb-with-luminance","For each rgb pixel convert to the luminance.");
++    arguments.getApplicationUsage()->addCommandLineOption("--compute-luminance-from-rgb","For each rgb pixel compute the luminance.");
+     arguments.getApplicationUsage()->addCommandLineOption("--num-components <num>","Set the number of components to in he target image.");
+     arguments.getApplicationUsage()->addCommandLineOption("--no-rescale","Disable the rescaling of the pixel data to 0.0 to 1.0 range");
+     arguments.getApplicationUsage()->addCommandLineOption("--rescale","Enable the rescale of the pixel data to 0.0 to 1.0 range (default).");
+@@ -562,7 +565,10 @@ int main( int argc, char **argv )
+     while(arguments.read("--modulate-alpha-by-luminance")) { colourSpaceOperation = osg::MODULATE_ALPHA_BY_LUMINANCE; }
+     while(arguments.read("--modulate-alpha-by-colour", colourModulate.x(),colourModulate.y(),colourModulate.z(),colourModulate.w() )) { colourSpaceOperation = osg::MODULATE_ALPHA_BY_COLOR; }
+     while(arguments.read("--replace-alpha-with-luminance")) { colourSpaceOperation = osg::REPLACE_ALPHA_WITH_LUMINANCE; }
++    while(arguments.read("--replace-alpha-with-luminance-inverted")) { colourSpaceOperation = osg::REPLACE_ALPHA_WITH_LUMINANCE_INVERTED; }
+     while(arguments.read("--replace-rgb-with-luminance")) { colourSpaceOperation = osg::REPLACE_RGB_WITH_LUMINANCE; }
++    while(arguments.read("--compute-luminance-from-rgb")) { colourSpaceOperation = osg::COMPUTE_LUMINANCE_FROM_RGB; }
++    
+ 
+ 
+     enum RescaleOperation
+diff --git a/include/osg/ImageUtils b/include/osg/ImageUtils
+index a79d739..ccf4ba2 100644
+--- a/include/osg/ImageUtils
++++ b/include/osg/ImageUtils
+@@ -233,7 +233,9 @@ enum ColorSpaceOperation
+     MODULATE_ALPHA_BY_LUMINANCE,
+     MODULATE_ALPHA_BY_COLOR,
+     REPLACE_ALPHA_WITH_LUMINANCE,
+-    REPLACE_RGB_WITH_LUMINANCE
++    REPLACE_RGB_WITH_LUMINANCE,
++    COMPUTE_LUMINANCE_FROM_RGB,
++    REPLACE_ALPHA_WITH_LUMINANCE_INVERTED
+ };
+ 
+ /** Convert the RGBA values in a Image based on a ColorSpaceOperation defined scheme.*/
+diff --git a/runexamples.bat b/runexamples.bat
+index 3b5acda..7983984 100644
+--- a/runexamples.bat
++++ b/runexamples.bat
+@@ -1,220 +1,220 @@
+ echo osgversion
+-osgversion
++vglrun osgversion
+ 
+ echo osgunittests
+-osgunittests matrix
+-osgunittests qt
+-osgunittests sizeof
++vglrun osgunittests matrix
++vglrun osgunittests qt
++vglrun osgunittests sizeof
+ 
+ echo osglauncher
+-osglauncher
++vglrun osglauncher
+ 
+ echo osganimate
+-osganimate
++vglrun osganimate
+ 
+ echo osgautotransform
+-osgautotransform
++vglrun osgautotransform
+ 
+ echo osgbillboard
+-osgbillboard
++vglrun osgbillboard
+ 
+ echo osgblendequation
+-osgblendequation
++vglrun osgblendequation
+ 
+ echo osgblenddrawbuffers
+-osgblenddrawbuffers
++vglrun osgblenddrawbuffers
+ 
+ echo osgoit
+-osgoit
++vglrun osgoit
+ 
+ echo osgdrawinstanced
+-osgdrawinstanced
++vglrun osgdrawinstanced
+ 
+ echo osgcomputeshaders
+-osgcomputeshaders
++vglrun osgcomputeshaders
+ 
+ echo osggpucull
+-osggpucull
++vglrun osggpucull
+ 
+ echo osgcallback
+-osgcallback
++vglrun osgcallback
+ 
+ # echo osgcatch
+ # osgcatch
+ 
+ echo osgclip
+-osgclip
++vglrun osgclip
+ 
+ echo osgcubemap
+-osgcubemap
++vglrun osgcubemap
+ 
+ echo osgdistortion
+-osgdistortion
++vglrun osgdistortion
+ 
+ echo osgdeferred
+-osgdeferred
++vglrun osgdeferred
+ 
+ echo osgforest
+-osgforest
++vglrun osgforest
+ 
+ echo osgfxbrowser
+-osgfxbrowser
++vglrun osgfxbrowser
+ 
+ echo osgoutline cow.osgt
+-osgoutline cow.osgt
++vglrun osgoutline cow.osgt
+ 
+ echo osggeometry
+-osggeometry
++#vglrun osggeometry
+ 
+ echo osghangglide
+-osghangglide
++vglrun osghangglide
+ 
+ echo osghud
+-osghud dumptruck.osgt
++vglrun osghud dumptruck.osgt
+ 
+ echo osgkeyboard
+-osgkeyboard
++vglrun osgkeyboard
+ 
+ echo osgkeyboardmouse
+-osgkeyboardmouse dumptruck.osgt
++#vglrun osgkeyboardmouse dumptruck.osgt
+ 
+ echo osglight
+-osglight glider.osgt
++vglrun osglight glider.osgt
+ 
+ echo osglightpoint
+-osglightpoint
++vglrun osglightpoint
+ 
+ echo osglogo
+-osglogo
++vglrun osglogo
+ 
+ echo osglogicop
+-osglogicop glider.osgt
++vglrun osglogicop glider.osgt
+ 
+ echo osgmotionblur
+-osgmotionblur cow.osgt
++vglrun osgmotionblur cow.osgt
+ 
+ echo osgmultitexture
+-osgmultitexture cessnafire.osgt
++vglrun osgmultitexture cessnafire.osgt
+ 
+ echo osgoccluder
+-osgoccluder glider.osgt
++vglrun osgoccluder glider.osgt
+ 
+ echo osgocclusionquery
+-osgocclusionquery
++vglrun osgocclusionquery
+ 
+ echo osgparticle
+-osgparticle
++vglrun osgparticle
+ 
+ echo osgparticleeffects
+-osgparticleeffects
++vglrun osgparticleeffects
+ 
+ echo osgpick
+-osgpick fountain.osgt
++vglrun osgpick fountain.osgt
+ 
+ echo osgpointsprite
+-osgpointsprite
++vglrun osgpointsprite
+ 
+ echo osgplanets
+-osgplanets
++vglrun osgplanets
+ 
+ echo osgprecipitation --rain 0.5
+-osgprecipitation --rain 0.5 lz.osgt
++vglrun osgprecipitation --rain 0.5 lz.osgt
+ 
+ echo osgprecipitation --snow 0.5
+-osgprecipitation --snow 0.5 lz.osgt
++vglrun osgprecipitation --snow 0.5 lz.osgt
+ 
+ echo osgprerender
+-osgprerender dumptruck.osgt
++vglrun osgprerender dumptruck.osgt
+ 
+ echo osgprerendercubemap
+-osgprerendercubemap
++vglrun osgprerendercubemap
+ 
+ echo osgreflect
+-osgreflect cessna.osgt
++vglrun osgreflect cessna.osgt
+ 
+ echo osgscalarbar
+-osgscalarbar
++vglrun osgscalarbar
+ 
+ echo osgscribe
+-osgscribe cow.osgt
++vglrun osgscribe cow.osgt
+ 
+ echo osgsequence
+-osgsequence cow.osgt dumptruck.osgt cessna.osgt glider.osgt
++vglrun osgsequence cow.osgt dumptruck.osgt cessna.osgt glider.osgt
+ 
+ echo osgshaders
+-osgshaders
++vglrun osgshaders
+ 
+ echo osgshaderterrain
+-osgshaderterrain
++vglrun osgshaderterrain
+ 
+ echo osgparametric
+-osgparametric
++vglrun osgparametric
+ 
+ echo osgthirdpersonview
+-osgthirdpersonview cow.osgt
++vglrun osgthirdpersonview cow.osgt
+ 
+ echo osgviewer glsl_simple.osgt
+-osgviewer glsl_simple.osgt
++vglrun osgviewer glsl_simple.osgt
+ 
+ echo osgviewer glsl_confetti.osgt
+-osgviewer glsl_confetti.osgt
++vglrun osgviewer glsl_confetti.osgt
+ 
+ echo osgviewer glsl_mandelbrot.osgt
+-osgviewer glsl_mandelbrot.osgt
++vglrun osgviewer glsl_mandelbrot.osgt
+ 
+ echo osgviewer glsl_julia.osgt
+-osgviewer glsl_julia.osgt
++vglrun osgviewer glsl_julia.osgt
+ 
+ echo osgshape
+-osgshape
++vglrun osgshape
+ 
+ echo osgshadow -3 --sm
+-osgshadow -3 --sm
++vglrun osgshadow -3 --sm
+ 
+ echo osgshadow -2 --st
+-osgshadow -2 --st
++vglrun osgshadow -2 --st
+ 
+ echo osgshadow -3 --ssm
+-osgshadow -3 --ssm
++vglrun osgshadow -3 --ssm
+ 
+ echo osgsimplifier
+-osgsimplifier --ratio 0.1 cessna.osgt
++vglrun osgsimplifier --ratio 0.1 cessna.osgt
+ 
+ echo osgsimulation
+-osgsimulation
++vglrun osgsimulation
+ 
+ echo osgspheresegment
+-osgspheresegment
++vglrun osgspheresegment
+ 
+ echo osgspotlight
+-osgspotlight
++vglrun osgspotlight
+ 
+ echo osgstereoimage
+-osgstereoimage
++vglrun osgstereoimage
+ 
+ echo osgteapot
+-osgteapot
++vglrun osgteapot
+ 
+ echo osgtessellate
+-osgtessellate
++vglrun osgtessellate
+ 
+ echo osgtext
+-osgtext
++vglrun osgtext
+ 
+ echo osgtexture1D
+-osgtexture1D
++vglrun osgtexture1D
+ 
+ echo osgtexture2D
+-osgtexture2D
++vglrun osgtexture2D
+ 
+ echo osgtexture3D
+-osgtexture3D
++vglrun osgtexture3D
+ 
+ echo osgtexturerectangle
+-osgtexturerectangle
++vglrun osgtexturerectangle
+ 
+ echo osgvertexprogram
+-osgvertexprogram
++vglrun osgvertexprogram
+ 
+ echo osgwindows
+-osgwindows
++vglrun osgwindows
+diff --git a/src/osg/ImageUtils.cpp b/src/osg/ImageUtils.cpp
+index 6131630..cf2f834 100644
+--- a/src/osg/ImageUtils.cpp
++++ b/src/osg/ImageUtils.cpp
+@@ -643,6 +643,45 @@ struct ReplaceAlphaWithLuminanceOperator
+     inline void rgba(float& r,float& g,float& b,float& a) const { float l = (r+g+b)*0.3333333; a = l; }
+ };
+ 
++struct ReplaceAlphaWithLuminanceInvertedOperator
++{
++    ReplaceAlphaWithLuminanceInvertedOperator() {}
++
++    inline void luminance(float&) const {}
++    inline void alpha(float&) const {}
++    inline void luminance_alpha(float& l,float& a) const { a = 1.0-l; }
++    inline void rgb(float&,float&,float&) const { }
++    inline void rgba(float& r,float& g,float& b,float& a) const { float l = (r+g+b)*0.3333333; a = 1.0-l; }
++};
++
++struct ComputeLuminanceFromRGBOperator
++{
++    ComputeLuminanceFromRGBOperator() {}
++
++    inline void luminance(float&) const {}
++    inline void alpha(float&) const {}
++    // Do not tamper with a if a < 1.0.
++    inline void luminance_alpha(float& l,float& a) const {if (a == 1.0) a = l;}
++    inline void rgb(float&,float&,float&) const { }
++    inline void rgba(float& r,float& g,float& b,float& a) const {
++      float l = (r+g+b)*0.3333333;
++      if (a == 1.0) {
++        a = l;
++        // find minimum of d. Highest value of r,g,b
++        float d = 1 - r;
++        float v = r;
++        if (d > 1 - g) {d = 1 -g; v = g;}
++        if (d > 1 - b) {d = 1 -b; v = b;}
++        // equlize so that largest rgb value vill be one.
++        float f=1;
++        if (v > 0) f = 1/v;
++        r = r * f;
++        g = g * f;
++        b = b * f;
++      }    
++    }
++};
++
+ osg::Image* colorSpaceConversion(ColorSpaceOperation op, osg::Image* image, const osg::Vec4& colour)
+ {
+     GLenum requiredPixelFormat = image->getPixelFormat();
+@@ -651,6 +690,8 @@ osg::Image* colorSpaceConversion(ColorSpaceOperation op, osg::Image* image, cons
+         case (MODULATE_ALPHA_BY_LUMINANCE):
+         case (MODULATE_ALPHA_BY_COLOR):
+         case (REPLACE_ALPHA_WITH_LUMINANCE):
++        case (REPLACE_ALPHA_WITH_LUMINANCE_INVERTED):
++        case (COMPUTE_LUMINANCE_FROM_RGB):
+             if (image->getPixelFormat()==GL_RGB || image->getPixelFormat()==GL_BGR) requiredPixelFormat = GL_RGBA;
+             break;
+         case (REPLACE_RGB_WITH_LUMINANCE):
+@@ -690,12 +731,24 @@ osg::Image* colorSpaceConversion(ColorSpaceOperation op, osg::Image* image, cons
+             osg::modifyImage(image, ReplaceAlphaWithLuminanceOperator());
+             return image;
+         }
++        case (REPLACE_ALPHA_WITH_LUMINANCE_INVERTED):
++        {
++            OSG_NOTICE<<"doing conversion REPLACE_ALPHA_WITH_LUMINANCE_INVERTED"<<std::endl;
++            osg::modifyImage(image, ReplaceAlphaWithLuminanceInvertedOperator());
++            return image;
++        }
+         case (REPLACE_RGB_WITH_LUMINANCE):
+         {
+             OSG_NOTICE<<"doing conversion REPLACE_RGB_WITH_LUMINANCE"<<std::endl;
+             // no work here required to be done as it'll already be done by copyImage above.
+             return image;
+         }
++        case (COMPUTE_LUMINANCE_FROM_RGB):
++        {
++            OSG_NOTICE<<"doing conversion COMPUTE_LUMINANCE_FROM_RGB"<<std::endl;
++            osg::modifyImage(image, ComputeLuminanceFromRGBOperator());
++            return image;
++        }
+         default:
+             return image;
+     }

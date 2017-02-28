@@ -14,9 +14,11 @@ IF ( NOT Qt5Widgets_FOUND )
     SET(TARGET_EXTERNAL_LIBRARIES ${QT_LIBRARIES} )
     ENDIF( QT4_FOUND )
 
-    INCLUDE_DIRECTORIES( ${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR}
-             ${QT_QTOPENGL_INCLUDE_DIR} )
+    
 ENDIF()
+
+INCLUDE_DIRECTORIES( ${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR}
+             ${QT_QTOPENGL_INCLUDE_DIR} ${COSERVER_INCLUDE_DIR})
 
 SET(TARGET_SRC
   main.cpp
@@ -35,6 +37,7 @@ SET(TARGET_IMG
   slutt.xpm
   start.xpm
   stopp.xpm
+  autoupdate.xpm
 )
 
 
@@ -46,7 +49,8 @@ SET(TARGET_ADDED_LIBRARIES
     osgGA
     osg
     OpenThreads
-    osgQt)
+    osgQt
+    ${COSERVER_LIBRARY})
     
 SET( EXAMPLE_NAME osgQtWidget )
 

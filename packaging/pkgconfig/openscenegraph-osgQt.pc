@@ -1,6 +1,6 @@
 # pkg-config source file
 
-prefix=/usr/local
+prefix=/data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_metno_git/osgQt/local
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib64
 includedir=${prefix}/include

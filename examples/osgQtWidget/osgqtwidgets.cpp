@@ -34,6 +34,8 @@
 
 #include <string.h>
 
+#include <unistd.h>
+
 #include <memory>
 
 #include "back.xpm"
@@ -42,6 +44,11 @@
 #include "slutt.xpm"
 #include "loop.xpm"
 #include "forward.xpm"
+#include "autoupdate.xpm"
+
+#include <ClientSelection.h>
+#include <miMessage.h>
+#include <QLetterCommands.h>
 
 bool MainWidget::inUpdate = false;
 
@@ -299,6 +306,15 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
   timeLoopAction->setIconVisibleInMenu(true);
   connect( timeLoopAction, SIGNAL( triggered() ) ,  SLOT( animationLoop() ) );
   
+  // Autoupdate ===============================
+  // --------------------------------------------------------------------
+  autoUpdateAction = new QAction(QIcon( QPixmap(autoupdate_xpm)),
+      tr("Automatic updates"), this );
+  autoUpdateAction->setCheckable(true);
+  autoUpdateAction->setIconVisibleInMenu(true);
+  doAutoUpdate = false;
+  connect( autoUpdateAction, SIGNAL( triggered() ), SLOT(autoUpdate()));
+  
   timerToolbar= new QToolBar("TimerToolBar",this);
   
   timerToolbar->setObjectName("TimerToolBar");
@@ -310,7 +326,24 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
   timerToolbar->addAction( timeStepForewardAction );
   timerToolbar->addAction( timeForewardAction  );
   timerToolbar->addAction( timeStopAction      );
-  timerToolbar->addAction( timeLoopAction        );  
+  timerToolbar->addAction( timeLoopAction        );
+  timerToolbar->addAction( autoUpdateAction        );
+  
+  // Connect to filewatcher/coserver/ClientSelection
+  pluginB = new ClientSelection("osgQtWidget", this);
+  pluginB->client()->setServerCommand(QString::fromStdString("/usr/bin/coserver"));
+  connect(pluginB, SIGNAL(receivedMessage(int, const miQMessage&)),
+      SLOT(processLetter(int, const miQMessage&)));
+  connect(pluginB, SIGNAL(disconnected()),
+      SLOT(connectionClosed()));
+  connect(pluginB, SIGNAL(renamed(const QString&)),
+      SLOT(setInstanceName(const QString&)));
+  setInstanceName("osgQtWidget");
+
+  QToolButton* clientbutton = new QToolButton(timerToolbar);
+  clientbutton->setDefaultAction(pluginB->getToolButtonAction());
+  timerToolbar->addWidget(clientbutton);
+  
   
     setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
@@ -549,6 +582,103 @@ void MainWidget::stepback()
   setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
 }
 
+void MainWidget::autoUpdate()
+{
+  doAutoUpdate = !doAutoUpdate;
+  autoUpdateAction->setChecked(doAutoUpdate);
+}
+
+void MainWidget::setInstanceName(QString name)
+{
+  pluginB->setClientName(name);
+}
+
+void MainWidget::connectionClosed()
+{
+  // Nothing to do for the moment.
+}
+
+std::string MainWidget::getNewFile(QString & directory)
+{
+  QString theFile;
+  QDir d(directory);
+	d.setSorting(QDir::Time|QDir::Reversed);
+	QStringList patterns("*.ive");
+  QFileInfoList list = d.entryInfoList(patterns);
+  QStringList theFiles;
+  if (list.size() > 0)
+	{
+    for (int k = 0; k < list.size(); k++)
+		{
+			QFileInfo fileInfo = list.at(k);
+			theFile = fileInfo.absoluteFilePath();
+      theFiles.append(theFile);
+		}
+  }
+  // Sanity check
+  
+  QList<QString>::iterator i = m_fileNames.begin();
+  for (; i != m_fileNames.end(); i++)
+  {
+    if (!theFiles.contains(*i)) {
+      // File removed from disk ?
+      i=m_fileNames.erase(i);
+    }
+	}
+  return theFile.toStdString();
+}
+
+void MainWidget::processLetter(int fromId, const miQMessage &qletter)
+{
+  const QString& command = qletter.command();
+  // If autoupdate is active, reread sat/radarfiles and
+  // show the latest timestep
+  if (command == qmstrings::directory_changed) {
+    QString dir = qletter.getCommonValue("directory changed");
+    QString currentFileName = m_updateOperation->getNodeFileName().c_str();
+    if (!currentFileName.contains(dir))
+      return;
+    if (doAutoUpdate) {
+      
+      std::string new_file = getNewFile(dir);
+      if (timeron) {
+        // check if animation is on, insert to the end of stringlist.
+        // check for duplicates
+        if(!m_fileNames.contains(new_file.c_str())) {
+          m_fileNames.append(new_file.c_str());
+        }
+        
+      }
+      else {
+        // if not, insert at the end, and read the new model.
+        // Check for duplicates
+        if(!m_fileNames.contains(new_file.c_str())) {
+          m_fileNames.append(new_file.c_str());
+          // set the index to the next newest file
+          currentIndex = m_fileNames.size() - 2;
+          // Sleep for some time to avoid sync problems with the file system
+          sleep(5);
+          stepforward();
+        }
+      }
+       
+    }
+    return;
+  }
+
+  // If autoupdate is active, do the same thing as
+  // when the user presses the updateObs button.
+  else if (command == qmstrings::file_changed) {
+    if (doAutoUpdate) {
+      // Not used for the moment.
+    }
+    return;
+  }
+  else {
+    return; //nothing to do
+  }
+}
+
 void MainWidget::dragEnterEvent( QDragEnterEvent *event )
 {
     if (event->mimeData()->hasFormat("text/uri-list"))
@@ -608,7 +738,9 @@ void UpdateOperation::operator()( osg::Object* callingObject )
 
 std::string UpdateOperation::getNodeFileName()
 {
-  return m_nodeFileName;
+  OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_mutex);
+  std::string tmp = m_nodeFileName;
+  return tmp;
 }
 
 ViewerFrameThread::~ViewerFrameThread()

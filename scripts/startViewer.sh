@@ -12,6 +12,5 @@ if [ "x$VGLTEST" == "x" ]; then
   VGLRUN="vglrun -d :0.$gpu_to_use"
   echo "$VGLRUN"
 fi
-
 $VGLRUN ./osgQtWidget --run-max-frame-rate 10
 exit

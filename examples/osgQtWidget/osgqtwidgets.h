@@ -11,6 +11,7 @@
 #include <QThread>
 #include <QStringList>
 #include <QTimer>
+#include <ClientSelection.h>
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
 class ViewerFrameThread : public QThread
@@ -85,11 +86,17 @@ class MainWidget:public QMainWindow
   void animationStop();
   void stepforward();
   void stepback();
+  void autoUpdate();
+  void connectionClosed();
+  void processLetter(int fromId, const miQMessage&);
+  void setInstanceName(QString instancename);
  private:
+  std::string getNewFile(QString & directory);
   QScopedPointer<ViewerFrameThread> m_viewThread;
   osg::ref_ptr<UpdateOperation> m_updateOperation;
   int timeron;
   bool timeloop;
+  bool doAutoUpdate;
   int animationTimer;        ///> the main timer id
   int timeout_ms;            ///> animation timeout in millisecs
   int currentIndex;
@@ -104,5 +111,8 @@ class MainWidget:public QMainWindow
   QAction * timeStepForewardAction;
   QAction * timeStopAction;
   QAction * timeLoopAction;
+  QAction * autoUpdateAction;
+  // Connect to filewatcher/coserver
+  ClientSelection   * pluginB;
 };
 #endif // _OSGWIDGET_H_

@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.5.6
-%define release 1.2
+%define release 1.3.1
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}
@@ -50,6 +50,15 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib64/libosgQt.so.146
 /usr/lib64/libosgQt.so.3.5.6
 /usr/lib64/osgdb_qfont.so
+/usr/lib64/libcoserver.so
+/usr/lib64/libcoserver.so.2
+/usr/lib64/libcoserver.so.2.0.0
+/usr/lib64/libmiLogger.so
+/usr/lib64/libmiLogger.so.6
+/usr/lib64/libmiLogger.so.6.0.0
+/usr/lib64/libqUtilities.so
+/usr/lib64/libqUtilities.so.7
+/usr/lib64/libqUtilities.so.7.0.0
 /usr/lib64/pkgconfig/openscenegraph-osgQt.pc
 
 
@@ -57,4 +66,5 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Dec 19 2016 Yngve Einarsson <Yngve.Einarsson@smhi.se>
 - Initial build.
 - Step, sequence, drag and drop and help.
-
+* Tue Feb 28 2016 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- Automatic updates implemented, using the metlibs coserver library.

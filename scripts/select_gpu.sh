@@ -6,8 +6,8 @@
 # Get number of available gpu cores
 nr_of_gpucores=$(nvidia-smi -L | grep GPU | wc -l)
 if [[ $nr_of_gpucores -eq 0 ]];then
-  echo "Error getting gpu cores from nvidia-smi, aborting..."
-  exit 2
+  #Error getting gpu cores from nvidia-smi, aborting...
+  exit -1
 fi
 
 

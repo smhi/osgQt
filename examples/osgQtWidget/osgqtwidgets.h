@@ -1,16 +1,32 @@
 #ifndef _OSGWIDGET_H_
 #define _OSGWIDGET_H_
  
-#include <QtGui/QtGui>
+//#include <QtGui/QtGui>
 #include <osg/ArgumentParser>
 #include <osgViewer/Viewer>
 #include <osgGA/StateSetManipulator>
+#include <osg/MatrixTransform>
+#include <osg/ShapeDrawable>
+#include <osg/PolygonMode>
+#include <osgUtil/LineSegmentIntersector>
 #include <osgQt/GraphicsWindowQt>
 #include <OpenThreads/Thread>
 #include <osg/Light>
+#include <QMainWindow> 
 #include <QThread>
 #include <QStringList>
 #include <QTimer>
+#include <QToolBar>
+#include <QMenu>
+#include <QMenuBar>
+#include <QToolButton>
+#include <QDropEvent>
+#include <QFileDialog>
+#include <QApplication>
+#include <QLabel>
+#include <QScrollArea>
+#include <QGraphicsScene>
+#include <QGraphicsView>
 #include <ClientSelection.h>
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
@@ -37,14 +53,14 @@ class OsgWidget :public osgViewer::Viewer
   virtual ~OsgWidget(void) {}
  
   QWidget* getWidget();
-  void updateScene(osg::Node*);
+  void updateScene(osg::Node*, std::string oldFileName, std::string newFileName);
  protected:
   QWidget* addViewWidget(osg::Camera*,osgGA::CameraManipulator* manipulator);
   osg::Camera* createCamera( int x, int y, int w, int h );
 
  private:
   QWidget* m_widget;
-  osg::Group* m_root;
+  osg::ref_ptr<osg::Group> m_root;
   osg::Light* myLight1;
 };
  
@@ -57,12 +73,13 @@ class UpdateOperation : public osg::Operation
   std::string getNodeFileName(); 
  private:
   std::string m_nodeFileName;
+  std::string m_oldnodeFileName;
   bool m_loadedFlag;
   bool m_newScene;
   OpenThreads::Mutex                  _mutex;
 };
  
-class MainWidget:public QMainWindow
+class MainWidget : public QMainWindow
 {
     Q_OBJECT
  public:

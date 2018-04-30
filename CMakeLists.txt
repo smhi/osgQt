@@ -128,9 +128,9 @@ ENDIF()
 PROJECT(osgQt)
 
 SET(OSGQT_MAJOR_VERSION 3)
-SET(OSGQT_MINOR_VERSION 5)
-SET(OSGQT_PATCH_VERSION 6)
-SET(OSGQT_SOVERSION 146)
+SET(OSGQT_MINOR_VERSION 6)
+SET(OSGQT_PATCH_VERSION 0)
+SET(OSGQT_SOVERSION 156)
 
 # set to 0 when not a release candidate, non zero means that any generated
 # git tags will be treated as release candidates of given number
@@ -1143,9 +1143,10 @@ ENDIF()
 # OSG Core
 ADD_SUBDIRECTORY(src)
 
-IF   (BUILD_OSG_EXAMPLES)
+IF(BUILD_OSG_EXAMPLES)
     ADD_SUBDIRECTORY(examples)
-    FIND_PACKAGE(COSERVER)
+    # Not working properly
+    # FIND_PACKAGE(COSERVER)
 ENDIF()
 
 
@@ -1332,7 +1333,7 @@ ENDIF()
 
 # Generate pkg-config configuration files
 
-FIND_PACKAGE(OpenSceneGraph 3.5.6 REQUIRED osg osgDB osgFX osgGA osgParticle osgSim osgText osgUtil osgTerrain osgManipulator osgViewer osgWidget osgShadow osgAnimation osgVolume)
+FIND_PACKAGE(OpenSceneGraph 3.6.0 REQUIRED osg osgDB osgFX osgGA osgParticle osgSim osgText osgUtil osgTerrain osgManipulator osgViewer osgWidget osgShadow osgAnimation osgVolume)
 
 IF(QT4_FOUND OR Qt5Widgets_FOUND )
   SET(PKGCONFIG_FILES ${PKGCONFIG_FILES} openscenegraph-osgQt)

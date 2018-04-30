@@ -7,7 +7,7 @@ includedir=${prefix}/include
 
 Name: openscenegraph-osgQt
 Description: osgQt utility library.
-Version: 3.5.6
+Version: 3.6.0
 Requires: openscenegraph-osgWidget openscenegraph-osgDB openscenegraph-osgUtil openscenegraph-osg openthreads
 Conflicts:
 Libs: -L${libdir} -losgQt

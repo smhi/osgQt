@@ -16,9 +16,14 @@ IF ( NOT Qt5Widgets_FOUND )
 
     
 ENDIF()
+set(COSERVER_LIBRARY coserver)
+set(COSERVER_INCLUDE_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_metno_git/local/include/coserver)
+set(COSERVER_LIB_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_metno_git/local/lib)
 
 INCLUDE_DIRECTORIES( ${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR}
              ${QT_QTOPENGL_INCLUDE_DIR} ${COSERVER_INCLUDE_DIR})
+
+LINK_DIRECTORIES(${COSERVER_LIB_DIR})
 
 SET(TARGET_SRC
   main.cpp
@@ -42,6 +47,8 @@ SET(TARGET_IMG
 
 
 SET(TARGET_ADDED_LIBRARIES
+    ${COSERVER_LIBRARY}
+    osgVolume
     osgWidget
     osgViewer
     osgUtil
@@ -50,7 +57,7 @@ SET(TARGET_ADDED_LIBRARIES
     osg
     OpenThreads
     osgQt
-    ${COSERVER_LIBRARY})
+    )
     
 SET( EXAMPLE_NAME osgQtWidget )
 

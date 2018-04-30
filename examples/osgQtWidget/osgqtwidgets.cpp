@@ -31,6 +31,13 @@
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/LightSource>
+#include <osg/BoundingBox>
+#include <osg/ComputeBoundsVisitor>
+
+#include <osgVolume/Volume>
+#include <osgVolume/VolumeTile>
+#include <osgVolume/Property>
+
 
 #include <string.h>
 
@@ -51,6 +58,22 @@
 #include <QLetterCommands.h>
 
 bool MainWidget::inUpdate = false;
+
+class FindVolumeTiles : public osg::NodeVisitor
+{
+public:
+    FindVolumeTiles(): osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
+
+    typedef std::vector< osg::ref_ptr<osgVolume::VolumeTile> > Tiles;
+    Tiles _tiles;
+
+    void apply(osg::Group& group)
+    {
+        osgVolume::VolumeTile* tile = dynamic_cast<osgVolume::VolumeTile*>(&group);
+        if (tile) _tiles.push_back(tile);
+        else traverse(group);
+    }
+};
 
 OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(arguments)
 {
@@ -115,7 +138,7 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
 #endif
     setThreadingModel(threadingModel);
     m_root=new osg::Group;
-
+    
     osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
 
     keyswitchManipulator->addMatrixManipulator( '1', "Trackball", new osgGA::TrackballManipulator() );
@@ -172,8 +195,11 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
 
     // add the screen capture handler
     addEventHandler(new osgViewer::ScreenCaptureHandler);
+    
+    // add the picker
+    //addEventHandler(picker.get());
 
-    setSceneData(m_root);
+    setSceneData(m_root.get());
 }
 
 QWidget* OsgWidget::addViewWidget(osg::Camera* camera, osgGA::CameraManipulator* manipulator)
@@ -216,17 +242,87 @@ QWidget* OsgWidget::getWidget()
     return m_widget;
 }
 
-void OsgWidget::updateScene( osg::Node* node)
+void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::string newFileName)
 {
     osgUtil::Optimizer optimizer;
     optimizer.optimize(node);
-    
+ 
     if(m_root->getNumChildren()) {
-        m_root->replaceChild(m_root->getChild(0),node);        
+        // Get properties from old node
+        // see examples/osgtransferfunction.cpp
+        // Apply this to the new node only if the same type of model, eg directory equals
+        // FIXME, this works well for volumes from osgvolume, but not for volumes from vpb
+        // We must keep LOD for vpb volumes
+        std::string oldnodedir, nodedir;
+        size_t oldpos, pos;
+        oldpos = oldFileName.find_last_of('/');
+        pos = newFileName.find_last_of('/');
+        oldnodedir = oldFileName.substr(0,oldpos);
+        nodedir=newFileName.substr(0,pos);
+    
+        if (oldnodedir == nodedir) {
+          osg::Node* oldnode = m_root->getChild(0);
+          float afProperty_value = -1.0; 
+          float tpProperty_value = -1.0;
+          osgVolume::ImageLayer* imageLayer = 0;
+          FindVolumeTiles fvt;
+          oldnode->accept(fvt);
+
+          if (!fvt._tiles.empty())
+          {
+            osgVolume::VolumeTile* tile = fvt._tiles[0].get();
+            imageLayer = dynamic_cast<osgVolume::ImageLayer*>(tile->getLayer());
+            tile->addEventCallback(new osgVolume::PropertyAdjustmentCallback());
+          }
+          if (imageLayer)
+          {
+            osgVolume::Property* property = imageLayer->getProperty();
+            if (property)
+            {
+              osgVolume::CollectPropertiesVisitor cpv;
+              property->accept(cpv);
+              if (cpv._afProperty.valid()) {
+                afProperty_value = cpv._afProperty->getValue();
+              }
+              if (cpv._transparencyProperty.valid()) {
+                tpProperty_value=cpv._transparencyProperty->getValue();
+              }
+            }
+          }
+          imageLayer = 0;
+          FindVolumeTiles fvtn;
+          node->accept(fvtn);
+
+          if (!fvtn._tiles.empty())
+          {
+            osgVolume::VolumeTile* tile = fvtn._tiles[0].get();
+            imageLayer = dynamic_cast<osgVolume::ImageLayer*>(tile->getLayer());
+            tile->addEventCallback(new osgVolume::PropertyAdjustmentCallback());
+          }
+          if (imageLayer)
+          {
+            osgVolume::Property* property = imageLayer->getProperty();
+            if (property)
+            {
+              osgVolume::CollectPropertiesVisitor cpv;
+              property->accept(cpv);
+              if (cpv._afProperty.valid()) {
+                if (afProperty_value != -1.0)
+                  cpv._afProperty->setValue(afProperty_value);
+              }
+              if (cpv._transparencyProperty.valid()) {
+                if (tpProperty_value != -1.0)
+                  cpv._transparencyProperty->setValue(tpProperty_value);
+              }
+            }
+          }
+        } // End dir names equal
+        m_root->replaceChild(m_root->getChild(0),node);      
     } else {
         m_root->addChild(node);
     }
-    setSceneData(m_root);
+   
+    setSceneData(m_root.get());
     requestRedraw();
     getWidget()->update();
 }
@@ -364,9 +460,9 @@ void MainWidget::openFile()
     QStringList fileNames;
     QString fileName = m_updateOperation->getNodeFileName().c_str();
     if(!fileName.isEmpty()) {
-      fileNames = QFileDialog::getOpenFileNames(this,"Open File", fileName, "Model Files (*.ive)");
+      fileNames = QFileDialog::getOpenFileNames(this,"Open File", fileName, "Model Files (*.ive *.gz *.dae);;All files (*.*)");
     } else {
-      fileNames = QFileDialog::getOpenFileNames(this,"Open File", QString(), "Model Files (*.ive)");
+      fileNames = QFileDialog::getOpenFileNames(this,"Open File", QString(), "Model Files (*.ive *.gz *.dae);;All files (*.*)");
     }
     if (!fileNames.isEmpty())  
     {
@@ -696,6 +792,7 @@ void UpdateOperation::updateScene( const std::string& name)
 {
     if(m_nodeFileName!=name){
         OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_mutex);
+        m_oldnodeFileName = m_nodeFileName;
         m_nodeFileName=name;
         m_loadedFlag=false;
     }
@@ -704,6 +801,7 @@ void UpdateOperation::updateScene( const std::string& name)
 void UpdateOperation::operator()( osg::Object* callingObject )
 {
     // decided which method to call according to whole has called me.
+    // FIXME: Keep sittings from previous scene if applicable.
     
     if(m_loadedFlag) {
       if (m_newScene) {
@@ -724,7 +822,7 @@ void UpdateOperation::operator()( osg::Object* callingObject )
         osg::ref_ptr<osg::Node> node = r.getNode();
         if(node){
             viewer->getCameraManipulator()->setNode(node);
-            viewer->updateScene(node);
+            viewer->updateScene(node,m_oldnodeFileName,m_nodeFileName);
             m_newScene=true;
             OSG_WARN<<m_nodeFileName<<" load successfully.\n";
         }else{

@@ -89,6 +89,7 @@ QFontImplementation::getGlyph(const osgText::FontResolution& fontRes, unsigned i
     }
 
     // the glyph texture in osg
+    /*
     glyph->setImage(imageWidth, imageHeight, 1,
                     OSGTEXT_GLYPH_INTERNALFORMAT,
                     OSGTEXT_GLYPH_FORMAT, GL_UNSIGNED_BYTE,
@@ -96,7 +97,7 @@ QFontImplementation::getGlyph(const osgText::FontResolution& fontRes, unsigned i
                     osg::Image::USE_NEW_DELETE,
                     1);
     glyph->setInternalTextureFormat(OSGTEXT_GLYPH_INTERNALFORMAT);
-
+    */
     glyph->setWidth((float)imageWidth * coord_scale);
     glyph->setHeight((float)imageHeight * coord_scale);
 

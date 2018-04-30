@@ -43,7 +43,7 @@ OpenSceneGraph's CMake build can be found at:
 
     http://www.openscenegraph.org/projects/osg/wiki/Build/CMake
     
-NOTE: You must have at least OpenSceneGraph 3.5.6 installed in your system to build osgQt.
+NOTE: You must have at least OpenSceneGraph 3.6.0 installed in your system to build osgQt.
 
 You build osgQt with cmake -DBUILD_OSG_EXAMPLES=1 -DCMAKE_INSTALL_PREFIX=<install directory> .
 

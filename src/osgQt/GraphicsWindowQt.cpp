@@ -143,12 +143,12 @@ public:
     {
     }
 
-    int remapKey(QKeyEvent* event)
+    int remapKey(QKeyEvent* event_in)
     {
-        KeyMap::iterator itr = mKeyMap.find(event->key());
+        KeyMap::iterator itr = mKeyMap.find(event_in->key());
         if (itr == mKeyMap.end())
         {
-            return int(*(event->text().toLatin1().data()));
+            return int(*(event_in->text().toLatin1().data()));
         }
         else
             return itr->second;
@@ -190,8 +190,8 @@ QPointer<HeartBeat> HeartBeat::heartBeat;
     #define GETDEVICEPIXELRATIO() devicePixelRatio()
 #endif
 
-GLWidget::GLWidget( QWidget* parent, const QGLWidget* shareWidget, Qt::WindowFlags f, bool forwardKeyEvents )
-: QGLWidget(parent, shareWidget, f),
+GLWidget::GLWidget( QWidget* parent_in, const QGLWidget* shareWidget, Qt::WindowFlags f, bool forwardKeyEvents )
+: QGLWidget(parent_in, shareWidget, f),
 _gw( NULL ),
 _touchEventsEnabled( false ),
 _forwardKeyEvents( forwardKeyEvents )
@@ -199,9 +199,9 @@ _forwardKeyEvents( forwardKeyEvents )
     _devicePixelRatio = GETDEVICEPIXELRATIO();
 }
 
-GLWidget::GLWidget( QGLContext* context, QWidget* parent, const QGLWidget* shareWidget, Qt::WindowFlags f,
+GLWidget::GLWidget( QGLContext* context_in, QWidget* parent_in, const QGLWidget* shareWidget, Qt::WindowFlags f,
                     bool forwardKeyEvents )
-: QGLWidget(context, parent, shareWidget, f),
+: QGLWidget(context_in, parent_in, shareWidget, f),
 _gw( NULL ),
 _touchEventsEnabled( false ),
 _forwardKeyEvents( forwardKeyEvents )
@@ -209,9 +209,9 @@ _forwardKeyEvents( forwardKeyEvents )
     _devicePixelRatio = GETDEVICEPIXELRATIO();
 }
 
-GLWidget::GLWidget( const QGLFormat& format, QWidget* parent, const QGLWidget* shareWidget, Qt::WindowFlags f,
+GLWidget::GLWidget( const QGLFormat& format_in, QWidget* parent_in, const QGLWidget* shareWidget, Qt::WindowFlags f,
                     bool forwardKeyEvents )
-: QGLWidget(format, parent, shareWidget, f),
+: QGLWidget(format_in, parent_in, shareWidget, f),
 _gw( NULL ),
 _touchEventsEnabled( false ),
 _forwardKeyEvents( forwardKeyEvents )
@@ -261,16 +261,16 @@ void GLWidget::processDeferredEvents()
 
     while (!deferredEventQueueCopy.isEmpty())
     {
-        QEvent event(deferredEventQueueCopy.dequeue());
-        QGLWidget::event(&event);
+        QEvent event_(deferredEventQueueCopy.dequeue());
+        QGLWidget::event(&event_);
     }
 }
 
-bool GLWidget::event( QEvent* event )
+bool GLWidget::event( QEvent* event_in )
 {
 #ifdef USE_GESTURES
-    if ( event->type()==QEvent::Gesture )
-        return gestureEvent(static_cast<QGestureEvent*>(event));
+    if ( event_in->type()==QEvent::Gesture )
+        return gestureEvent(static_cast<QGestureEvent*>(event_in));
 #endif
 
     // QEvent::Hide
@@ -295,19 +295,19 @@ bool GLWidget::event( QEvent* event )
     // outside the main thread are not allowed) just before makeCurrent is called from the
     // right thread. The good place for doing that is right after swap in a swapBuffersImplementation.
 
-    if (event->type() == QEvent::Hide)
+    if (event_in->type() == QEvent::Hide)
     {
         // enqueue only the last of QEvent::Hide and QEvent::Show
         enqueueDeferredEvent(QEvent::Hide, QEvent::Show);
         return true;
     }
-    else if (event->type() == QEvent::Show)
+    else if (event_in->type() == QEvent::Show)
     {
         // enqueue only the last of QEvent::Show or QEvent::Hide
         enqueueDeferredEvent(QEvent::Show, QEvent::Hide);
         return true;
     }
-    else if (event->type() == QEvent::ParentChange)
+    else if (event_in->type() == QEvent::ParentChange)
     {
         // enqueue only the last QEvent::ParentChange
         enqueueDeferredEvent(QEvent::ParentChange);
@@ -315,37 +315,37 @@ bool GLWidget::event( QEvent* event )
     }
 
     // perform regular event handling
-    return QGLWidget::event( event );
+    return QGLWidget::event( event_in );
 }
 
-void GLWidget::setKeyboardModifiers( QInputEvent* event )
+void GLWidget::setKeyboardModifiers( QInputEvent* event_in )
 {
-    int modkey = event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier);
-    unsigned int mask = 0;
-    if ( modkey & Qt::ShiftModifier ) mask |= osgGA::GUIEventAdapter::MODKEY_SHIFT;
-    if ( modkey & Qt::ControlModifier ) mask |= osgGA::GUIEventAdapter::MODKEY_CTRL;
-    if ( modkey & Qt::AltModifier ) mask |= osgGA::GUIEventAdapter::MODKEY_ALT;
-    _gw->getEventQueue()->getCurrentEventState()->setModKeyMask( mask );
+    int modkey = event_in->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier);
+    unsigned int mask_ = 0;
+    if ( modkey & Qt::ShiftModifier ) mask_ |= osgGA::GUIEventAdapter::MODKEY_SHIFT;
+    if ( modkey & Qt::ControlModifier ) mask_ |= osgGA::GUIEventAdapter::MODKEY_CTRL;
+    if ( modkey & Qt::AltModifier ) mask_ |= osgGA::GUIEventAdapter::MODKEY_ALT;
+    _gw->getEventQueue()->getCurrentEventState()->setModKeyMask( mask_ );
 }
 
-void GLWidget::resizeEvent( QResizeEvent* event )
+void GLWidget::resizeEvent( QResizeEvent* event_in )
 {
-    const QSize& size = event->size();
+    const QSize& size_ = event_in->size();
 
-    int scaled_width = static_cast<int>(size.width()*_devicePixelRatio);
-    int scaled_height = static_cast<int>(size.height()*_devicePixelRatio);
+    int scaled_width = static_cast<int>(size_.width()*_devicePixelRatio);
+    int scaled_height = static_cast<int>(size_.height()*_devicePixelRatio);
     _gw->resized( x(), y(), scaled_width,  scaled_height);
     _gw->getEventQueue()->windowResize( x(), y(), scaled_width, scaled_height );
     _gw->requestRedraw();
 }
 
-void GLWidget::moveEvent( QMoveEvent* event )
+void GLWidget::moveEvent( QMoveEvent* event_in )
 {
-    const QPoint& pos = event->pos();
+    const QPoint& pos_ = event_in->pos();
     int scaled_width = static_cast<int>(width()*_devicePixelRatio);
     int scaled_height = static_cast<int>(height()*_devicePixelRatio);
-    _gw->resized( pos.x(), pos.y(), scaled_width,  scaled_height );
-    _gw->getEventQueue()->windowResize( pos.x(), pos.y(), scaled_width,  scaled_height );
+    _gw->resized( pos_.x(), pos_.y(), scaled_width,  scaled_height );
+    _gw->getEventQueue()->windowResize( pos_.x(), pos_.y(), scaled_width,  scaled_height );
 }
 
 void GLWidget::glDraw()
@@ -353,41 +353,41 @@ void GLWidget::glDraw()
     _gw->requestRedraw();
 }
 
-void GLWidget::keyPressEvent( QKeyEvent* event )
+void GLWidget::keyPressEvent( QKeyEvent* event_in )
 {
-    setKeyboardModifiers( event );
-    int value = s_QtKeyboardMap.remapKey( event );
+    setKeyboardModifiers( event_in );
+    int value = s_QtKeyboardMap.remapKey( event_in );
     _gw->getEventQueue()->keyPress( value );
 
     // this passes the event to the regular Qt key event processing,
     // among others, it closes popup windows on ESC and forwards the event to the parent widgets
     if( _forwardKeyEvents )
-        inherited::keyPressEvent( event );
+        inherited::keyPressEvent( event_in );
 }
 
-void GLWidget::keyReleaseEvent( QKeyEvent* event )
+void GLWidget::keyReleaseEvent( QKeyEvent* event_in )
 {
-    if( event->isAutoRepeat() )
+    if( event_in->isAutoRepeat() )
     {
-        event->ignore();
+        event_in->ignore();
     }
     else
     {
-        setKeyboardModifiers( event );
-        int value = s_QtKeyboardMap.remapKey( event );
+        setKeyboardModifiers( event_in );
+        int value = s_QtKeyboardMap.remapKey( event_in );
         _gw->getEventQueue()->keyRelease( value );
     }
 
     // this passes the event to the regular Qt key event processing,
     // among others, it closes popup windows on ESC and forwards the event to the parent widgets
     if( _forwardKeyEvents )
-        inherited::keyReleaseEvent( event );
+        inherited::keyReleaseEvent( event_in );
 }
 
-void GLWidget::mousePressEvent( QMouseEvent* event )
+void GLWidget::mousePressEvent( QMouseEvent* event_in )
 {
     int button = 0;
-    switch ( event->button() )
+    switch ( event_in->button() )
     {
         case Qt::LeftButton: button = 1; break;
         case Qt::MidButton: button = 2; break;
@@ -395,14 +395,14 @@ void GLWidget::mousePressEvent( QMouseEvent* event )
         case Qt::NoButton: button = 0; break;
         default: button = 0; break;
     }
-    setKeyboardModifiers( event );
-    _gw->getEventQueue()->mouseButtonPress( event->x()*_devicePixelRatio, event->y()*_devicePixelRatio, button );
+    setKeyboardModifiers( event_in );
+    _gw->getEventQueue()->mouseButtonPress( event_in->x()*_devicePixelRatio, event_in->y()*_devicePixelRatio, button );
 }
 
-void GLWidget::mouseReleaseEvent( QMouseEvent* event )
+void GLWidget::mouseReleaseEvent( QMouseEvent* event_in )
 {
     int button = 0;
-    switch ( event->button() )
+    switch ( event_in->button() )
     {
         case Qt::LeftButton: button = 1; break;
         case Qt::MidButton: button = 2; break;
@@ -410,14 +410,14 @@ void GLWidget::mouseReleaseEvent( QMouseEvent* event )
         case Qt::NoButton: button = 0; break;
         default: button = 0; break;
     }
-    setKeyboardModifiers( event );
-    _gw->getEventQueue()->mouseButtonRelease( event->x()*_devicePixelRatio, event->y()*_devicePixelRatio, button );
+    setKeyboardModifiers( event_in );
+    _gw->getEventQueue()->mouseButtonRelease( event_in->x()*_devicePixelRatio, event_in->y()*_devicePixelRatio, button );
 }
 
-void GLWidget::mouseDoubleClickEvent( QMouseEvent* event )
+void GLWidget::mouseDoubleClickEvent( QMouseEvent* event_in )
 {
     int button = 0;
-    switch ( event->button() )
+    switch ( event_in->button() )
     {
         case Qt::LeftButton: button = 1; break;
         case Qt::MidButton: button = 2; break;
@@ -425,23 +425,23 @@ void GLWidget::mouseDoubleClickEvent( QMouseEvent* event )
         case Qt::NoButton: button = 0; break;
         default: button = 0; break;
     }
-    setKeyboardModifiers( event );
-    _gw->getEventQueue()->mouseDoubleButtonPress( event->x()*_devicePixelRatio, event->y()*_devicePixelRatio, button );
+    setKeyboardModifiers( event_in );
+    _gw->getEventQueue()->mouseDoubleButtonPress( event_in->x()*_devicePixelRatio, event_in->y()*_devicePixelRatio, button );
 }
 
-void GLWidget::mouseMoveEvent( QMouseEvent* event )
+void GLWidget::mouseMoveEvent( QMouseEvent* event_in )
 {
-    setKeyboardModifiers( event );
-    _gw->getEventQueue()->mouseMotion( event->x()*_devicePixelRatio, event->y()*_devicePixelRatio );
+    setKeyboardModifiers( event_in );
+    _gw->getEventQueue()->mouseMotion( event_in->x()*_devicePixelRatio, event_in->y()*_devicePixelRatio );
 }
 
-void GLWidget::wheelEvent( QWheelEvent* event )
+void GLWidget::wheelEvent( QWheelEvent* event_in )
 {
-    setKeyboardModifiers( event );
+    setKeyboardModifiers( event_in );
     _gw->getEventQueue()->mouseScroll(
-        event->orientation() == Qt::Vertical ?
-            (event->delta()>0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN) :
-            (event->delta()>0 ? osgGA::GUIEventAdapter::SCROLL_LEFT : osgGA::GUIEventAdapter::SCROLL_RIGHT) );
+        event_in->orientation() == Qt::Vertical ?
+            (event_in->delta()>0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN) :
+            (event_in->delta()>0 ? osgGA::GUIEventAdapter::SCROLL_LEFT : osgGA::GUIEventAdapter::SCROLL_RIGHT) );
 }
 
 #ifdef USE_GESTURES
@@ -494,24 +494,24 @@ bool GLWidget::gestureEvent( QGestureEvent* qevent )
         const osg::Vec2 p0 = pinchCenter+vector;
         const osg::Vec2 p1 = pinchCenter-vector;
 
-        osg::ref_ptr<osgGA::GUIEventAdapter> event = 0;
+        osg::ref_ptr<osgGA::GUIEventAdapter> event_ = 0;
         const osgGA::GUIEventAdapter::TouchPhase touchPhase = translateQtGestureState( pinch->state() );
         if ( touchPhase==osgGA::GUIEventAdapter::TOUCH_BEGAN )
         {
-            event = _gw->getEventQueue()->touchBegan(0 , touchPhase, p0[0], p0[1] );
+            event_ = _gw->getEventQueue()->touchBegan(0 , touchPhase, p0[0], p0[1] );
         }
         else if ( touchPhase==osgGA::GUIEventAdapter::TOUCH_MOVED )
         {
-            event = _gw->getEventQueue()->touchMoved( 0, touchPhase, p0[0], p0[1] );
+            event_ = _gw->getEventQueue()->touchMoved( 0, touchPhase, p0[0], p0[1] );
         }
         else
         {
-            event = _gw->getEventQueue()->touchEnded( 0, touchPhase, p0[0], p0[1], 1 );
+            event_ = _gw->getEventQueue()->touchEnded( 0, touchPhase, p0[0], p0[1], 1 );
         }
 
-        if ( event )
+        if ( event_ )
         {
-            event->addTouchPoint( 1, touchPhase, p1[0], p1[1] );
+            event_->addTouchPoint( 1, touchPhase, p1[0], p1[1] );
             accept = true;
         }
     }
@@ -525,13 +525,13 @@ bool GLWidget::gestureEvent( QGestureEvent* qevent )
 
 
 
-GraphicsWindowQt::GraphicsWindowQt( osg::GraphicsContext::Traits* traits, QWidget* parent, const QGLWidget* shareWidget, Qt::WindowFlags f )
+GraphicsWindowQt::GraphicsWindowQt( osg::GraphicsContext::Traits* traits, QWidget* parent_in, const QGLWidget* shareWidget, Qt::WindowFlags f )
 :   _realized(false)
 {
 
     _widget = NULL;
     _traits = traits;
-    init( parent, shareWidget, f );
+    init( parent_in, shareWidget, f );
 }
 
 GraphicsWindowQt::GraphicsWindowQt( GLWidget* widget )
@@ -551,14 +551,14 @@ GraphicsWindowQt::~GraphicsWindowQt()
         _widget->_gw = NULL;
 }
 
-bool GraphicsWindowQt::init( QWidget* parent, const QGLWidget* shareWidget, Qt::WindowFlags f )
+bool GraphicsWindowQt::init( QWidget* parent_in, const QGLWidget* shareWidget, Qt::WindowFlags f )
 {
     // update _widget and parent by WindowData
     WindowData* windowData = _traits.get() ? dynamic_cast<WindowData*>(_traits->inheritedWindowData.get()) : 0;
     if ( !_widget )
         _widget = windowData ? windowData->_widget : NULL;
-    if ( !parent )
-        parent = windowData ? windowData->_parent : NULL;
+    if ( !parent_in )
+        parent_in = windowData ? windowData->_parent : NULL;
 
     // create widget if it does not exist
     _ownsWidget = _widget == NULL;
@@ -581,7 +581,7 @@ bool GraphicsWindowQt::init( QWidget* parent, const QGLWidget* shareWidget, Qt::
                 ;
 
         // create widget
-        _widget = new GLWidget( traits2qglFormat( _traits.get() ), parent, shareWidget, flags );
+        _widget = new GLWidget( traits2qglFormat( _traits.get() ), parent_in, shareWidget, flags );
     }
 
     // set widget name and position

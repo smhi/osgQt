@@ -444,10 +444,10 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
     setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
 
-void MainWidget::dropEvent( QDropEvent *event )
+void MainWidget::dropEvent( QDropEvent *event_in )
 {
-    if(event->mimeData()->hasFormat("text/uri-list")){
-        QString fileName = event->mimeData()->urls().first().toLocalFile();
+    if(event_in->mimeData()->hasFormat("text/uri-list")){
+        QString fileName = event_in->mimeData()->urls().first().toLocalFile();
         m_fileNames.append(fileName);
         m_updateOperation->updateScene(fileName.toStdString());
         setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
@@ -545,10 +545,10 @@ void MainWidget::showHelp()
   label->setWordWrap(true);
   label->setTextInteractionFlags(Qt::TextEditorInteraction);
 
-  QPalette palette = label->palette();
-  palette.setColor(QPalette::Highlight, Qt::darkBlue);
-  palette.setColor(QPalette::HighlightedText, Qt::white);
-  label->setPalette(palette);
+  QPalette palette_ = label->palette();
+  palette_.setColor(QPalette::Highlight, Qt::darkBlue);
+  palette_.setColor(QPalette::HighlightedText, Qt::white);
+  label->setPalette(palette_);
 
   QScrollArea* scrollArea = new QScrollArea;
   scrollArea->setWidget(label);
@@ -775,10 +775,10 @@ void MainWidget::processLetter(int fromId, const miQMessage &qletter)
   }
 }
 
-void MainWidget::dragEnterEvent( QDragEnterEvent *event )
+void MainWidget::dragEnterEvent( QDragEnterEvent *event_in )
 {
-    if (event->mimeData()->hasFormat("text/uri-list"))
-        event->acceptProposedAction();
+    if (event_in->mimeData()->hasFormat("text/uri-list"))
+        event_in->acceptProposedAction();
 }
 
 UpdateOperation::UpdateOperation()

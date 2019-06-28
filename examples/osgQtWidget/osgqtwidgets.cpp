@@ -40,10 +40,12 @@
 
 
 #include <string.h>
+#include <string>
 
 #include <unistd.h>
 
 #include <memory>
+#include <iostream>
 
 #include "back.xpm"
 #include "start.xpm"
@@ -700,6 +702,7 @@ std::string MainWidget::getNewFile(QString & directory)
   QDir d(directory);
 	d.setSorting(QDir::Time|QDir::Reversed);
 	QStringList patterns("*.ive");
+  patterns.append("*.gz");
   QFileInfoList list = d.entryInfoList(patterns);
   QStringList theFiles;
   if (list.size() > 0)
@@ -712,15 +715,18 @@ std::string MainWidget::getNewFile(QString & directory)
 		}
   }
   // Sanity check
-  
-  QList<QString>::iterator i = m_fileNames.begin();
-  for (; i != m_fileNames.end(); i++)
-  {
-    if (!theFiles.contains(*i)) {
-      // File removed from disk ?
-      i=m_fileNames.erase(i);
+  if (theFiles.size() > 0) {
+    QList<QString>::iterator i = m_fileNames.begin();
+    for (; i != m_fileNames.end();)
+    {
+      if (!theFiles.contains(*i)) {
+        // File removed from disk ?
+        i=m_fileNames.erase(i);
+      } else {
+        i++;
+      }
     }
-	}
+  }
   return theFile.toStdString();
 }
 
@@ -731,8 +737,9 @@ void MainWidget::processLetter(int fromId, const miQMessage &qletter)
   // show the latest timestep
   if (command == qmstrings::directory_changed) {
     QString dir = qletter.getCommonValue("directory changed");
-    QString currentFileName = m_updateOperation->getNodeFileName().c_str();
-    if (!currentFileName.contains(dir))
+    std::string tmp = m_updateOperation->getNodeFileName();
+    std::string currentDir = tmp.substr(0,tmp.find_last_of("/"));
+    if (currentDir != dir.toStdString())
       return;
     if (doAutoUpdate) {
       

@@ -1,24 +1,39 @@
 SET(SOURCES_H
   osgqtwidgets.h
   )
-
-IF ( NOT Qt5Widgets_FOUND )
-    IF( QT4_FOUND )
+IF ( Qt5Widgets_FOUND )
+    SET(TARGET_EXTERNAL_LIBRARIES ${QT_LIBRARIES} )
+    QT5_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS
+          "-fosgqtwidgets.h" )
+    set(OSGQT_QT_VERSION 5)
+ELSE()
     SET(TARGET_EXTERNAL_LIBRARIES ${QT_QTCORE_LIBRARY_RELEASE} ${QT_QTGUI_LIBRARY_RELEASE}
         ${QT_QTOPENGL_LIBRARY_RELEASE} )
     ADD_DEFINITIONS(-DUSE_QT4)
     #QT4_CREATE_MOC_COMMAND(${SOURCES_H} "moc_osgqtwidgets.cxx" "" "" "")
 
     QT4_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS "-fosgqtwidgets.h" )
-    ELSE( QT4_FOUND )
-    SET(TARGET_EXTERNAL_LIBRARIES ${QT_LIBRARIES} )
-    ENDIF( QT4_FOUND )
-
-    
+    set(OSGQT_QT_VERSION 4)
 ENDIF()
-set(COSERVER_LIBRARY coserver)
-set(COSERVER_INCLUDE_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_metno_git/local/include/coserver)
-set(COSERVER_LIB_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_metno_git/local/lib)
+
+
+#IF ( NOT Qt5Widgets_FOUND )
+#    IF( QT4_FOUND )
+#    SET(TARGET_EXTERNAL_LIBRARIES ${QT_QTCORE_LIBRARY_RELEASE} ${QT_QTGUI_LIBRARY_RELEASE}
+#        ${QT_QTOPENGL_LIBRARY_RELEASE} )
+#    ADD_DEFINITIONS(-DUSE_QT4)
+    #QT4_CREATE_MOC_COMMAND(${SOURCES_H} "moc_osgqtwidgets.cxx" "" "" "")
+
+#    QT4_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS "-fosgqtwidgets.h" )
+#    ELSE( QT4_FOUND )
+#    SET(TARGET_EXTERNAL_LIBRARIES ${QT_LIBRARIES} )
+#    ENDIF( QT4_FOUND )
+#
+#    
+#ENDIF()
+set(COSERVER_LIBRARY metlibs-coserver-qt5)
+set(COSERVER_INCLUDE_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_3.49.1_SMHI/local/include/metlibs/coserver)
+set(COSERVER_LIB_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_3.49.1_SMHI/local/lib64)
 
 INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/examples/osgQtWidget ${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR}
              ${QT_QTOPENGL_INCLUDE_DIR} ${COSERVER_INCLUDE_DIR})

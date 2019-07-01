@@ -54,6 +54,7 @@
 #include "loop.xpm"
 #include "forward.xpm"
 #include "autoupdate.xpm"
+#include <QMimeData>
 
 #include <ClientSelection.h>
 #include <miMessage.h>
@@ -131,13 +132,8 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
         }
     }
 
-
-#if QT_VERSION >= 0x050000
-    // Qt5 is currently crashing and reporting "Cannot make QOpenGLContext current in a different thread" when the viewer is run multi-threaded, this is regression from Qt4
-    osgViewer::ViewerBase::ThreadingModel threadingModel = osgViewer::ViewerBase::SingleThreaded;
-#else
     osgViewer::ViewerBase::ThreadingModel threadingModel = osgViewer::ViewerBase::CullDrawThreadPerContext;
-#endif
+
     setThreadingModel(threadingModel);
     m_root=new osg::Group;
     
@@ -732,17 +728,19 @@ std::string MainWidget::getNewFile(QString & directory)
 
 void MainWidget::processLetter(int fromId, const miQMessage &qletter)
 {
+  miMessage letter;
+  convert(fromId, 0 /*my id, unused*/, qletter, letter);
   const QString& command = qletter.command();
   // If autoupdate is active, reread sat/radarfiles and
   // show the latest timestep
   if (command == qmstrings::directory_changed) {
-    QString dir = qletter.getCommonValue("directory changed");
+    const int c_cmd = qletter.findCommonDesc("directory changed");
+    QString dir = qletter.getCommonValue(c_cmd);
     std::string tmp = m_updateOperation->getNodeFileName();
     std::string currentDir = tmp.substr(0,tmp.find_last_of("/"));
     if (currentDir != dir.toStdString())
       return;
-    if (doAutoUpdate) {
-      
+    if (doAutoUpdate) {      
       std::string new_file = getNewFile(dir);
       if (timeron) {
         // check if animation is on, insert to the end of stringlist.

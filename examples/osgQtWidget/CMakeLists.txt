@@ -32,8 +32,8 @@ ENDIF()
 #    
 #ENDIF()
 set(COSERVER_LIBRARY metlibs-coserver-qt5)
-set(COSERVER_INCLUDE_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_3.49.1_SMHI/local/include/metlibs/coserver)
-set(COSERVER_LIB_DIR /data/proj/diana/NYVIS_DEV/Yngve.Einarsson/DIANA/diana_3.49.1_SMHI/local/lib64)
+set(COSERVER_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/local/include/metlibs/coserver)
+set(COSERVER_LIB_DIR ${CMAKE_SOURCE_DIR}/local/lib64)
 
 INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/examples/osgQtWidget ${QT_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR} ${QT_QTGUI_INCLUDE_DIR}
              ${QT_QTOPENGL_INCLUDE_DIR} ${COSERVER_INCLUDE_DIR})

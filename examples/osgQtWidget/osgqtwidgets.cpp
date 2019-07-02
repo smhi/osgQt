@@ -262,6 +262,12 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
           osg::Node* oldnode = m_root->getChild(0);
           float afProperty_value = -1.0; 
           float tpProperty_value = -1.0;
+          float sampleDensityProperty_value = -1.0;
+          float isoProperty_value = -1.0;
+          /*
+          float mipProperty_value = -1.0;
+          float lightingProperty_value = -1.0;
+          */
           osgVolume::ImageLayer* imageLayer = 0;
           FindVolumeTiles fvt;
           oldnode->accept(fvt);
@@ -285,6 +291,22 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
               if (cpv._transparencyProperty.valid()) {
                 tpProperty_value=cpv._transparencyProperty->getValue();
               }
+              if (cpv._sampleDensityProperty.valid()) {
+                sampleDensityProperty_value=cpv._sampleDensityProperty->getValue();
+              }
+              if (cpv._isoProperty.valid()) {
+                isoProperty_value=cpv._isoProperty->getValue();
+              }
+              /*
+              Not scalar properties.
+              if (cpv._mipProperty.valid()) {
+                mipProperty_value=cpv._mipProperty->getValue();
+              }
+              if (cpv._lightingProperty.valid()) {
+                lightingProperty_value=cpv._lightingProperty->getValue();
+              }
+              */
+
             }
           }
           imageLayer = 0;
@@ -312,6 +334,26 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
                 if (tpProperty_value != -1.0)
                   cpv._transparencyProperty->setValue(tpProperty_value);
               }
+              if (cpv._sampleDensityProperty.valid()) {
+                if (sampleDensityProperty_value != -1.0)
+                  cpv._sampleDensityProperty->setValue(sampleDensityProperty_value);
+              }
+              if (cpv._isoProperty.valid()) {
+                if (isoProperty_value != -1.0)
+                  cpv._isoProperty->setValue(isoProperty_value);
+              }
+              /*
+              Not scalar properties
+              if (cpv._mipProperty.valid()) {
+                if (mipProperty_value != -1.0)
+                  cpv._mipProperty->setValue(mipProperty_value);
+              }
+              if (cpv._lightingProperty.valid()) {
+                if (lightingProperty_value != -1.0)
+                  cpv._lightingProperty->setValue(lightingProperty_value);
+              }
+              */
+              
             }
           }
         } // End dir names equal

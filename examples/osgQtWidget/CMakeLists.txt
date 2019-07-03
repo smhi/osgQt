@@ -56,6 +56,8 @@ SET(TARGET_SRC
   diLocalSetupParser.cc
   diUtilities.cc
   miSetupParser.cc
+  osgModelManager.cc
+  diCommonFieldTypes.cc
   util/charsets.cc
   util/diKeyValue.cc
   util/diLineMerger.cc
@@ -67,11 +69,14 @@ SET(TARGET_H
   osgqtwidgets.h
   diLocalSetupParser.h
   diUtilities.h
-  miSetupParser.h 
+  miSetupParser.h
+  osgModelManager.h
+  diCommonFieldTypes.h  
   util/charsets.h
   util/diKeyValue.h
   util/diLineMerger.h
-  util/string_util.h  
+  util/string_util.h
+  util/misc_util.h  
   )
   
 SET(TARGET_IMG

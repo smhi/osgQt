@@ -280,33 +280,13 @@ bool ModelManager::updateFileSetup(const std::vector<std::string>& lines,
           fieldModelGroups.push_back(fdi);
         }
       }
-#if 0
+
       for (unsigned int n = 0; n < vModelNames.size(); n++) {
         const std::string& mn = vModelNames[n];
-
-        //remove old definition
-        gridSources.erase(mn);
-
-        GridIOsetupPtr setup;
-        if (gridio_setups.count(gridioType) > 0) {
-          setup = gridio_setups[gridioType];
-        }
-        // make a new GridCollection typically containing one GridIO for each file..
-        GridCollectionPtr gridcollection(new GridCollection);
-        if (gridcollection->setContents(gridioType, mn, vFileNames[n],
-            format, config, options, setup.get(), validTimeFromFilename))
-        {
-          gridSources[mn] = gridcollection;
-          if (!miutil::contains(miutil::to_lower(guiOptions), "notingui")) {
+        if (!miutil::contains(miutil::to_lower(guiOptions), "notingui")) {
             fieldModelGroups[groupIndex].models.push_back(FieldModelInfo(mn, lines[l]));
-          }
-        } else {
-          std::ostringstream ost;
-          ost << FIELD_FILES << "|" << l << "|Bad or no GridIO with type= " << gridioType << "  for model='" << mn << "'";
-          errors.push_back(ost.str());
         }
       }
-#endif
     }
   }
   return true;

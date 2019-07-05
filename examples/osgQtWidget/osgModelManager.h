@@ -30,6 +30,7 @@
 #define diModelManager_h
 
 #include "diCommonFieldTypes.h"
+#include "osgModelManager.h"
 
 #include <puTools/miTime.h>
 

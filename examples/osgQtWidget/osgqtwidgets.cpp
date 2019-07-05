@@ -60,6 +60,7 @@
 #include <miMessage.h>
 #include <QLetterCommands.h>
 
+
 bool MainWidget::inUpdate = false;
 
 class FindVolumeTiles : public osg::NodeVisitor
@@ -371,6 +372,21 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
 {
     // Parse the arguments and send to viewer implementation
     osg::ArgumentParser arguments(&argc,argv);
+    
+    m_ModelManager = new ModelManager();
+    m_ModelManager->parseSetup();
+    FieldModelGroupInfo_v test = m_ModelManager->getFieldModelGroups();
+// Just debug
+    for (size_t i = 0; i < test.size(); i++)
+    {
+      std::cerr << test[i].groupName << std::endl;
+      FieldModelInfo_v test1 = test[i].models;
+      for (size_t j = 0; j < test1.size(); j++)
+      {
+        std::cerr << test1[j].modelName << std::endl;
+        std::cerr << test1[j].setupInfo << std::endl;
+      }
+    }      
     
     OsgWidget* viewer=new OsgWidget(arguments);
     QWidget* widget=viewer->getWidget();

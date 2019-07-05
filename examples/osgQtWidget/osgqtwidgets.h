@@ -28,6 +28,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <ClientSelection.h>
+#include "osgModelManager.h"
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
 class ViewerFrameThread : public QThread
@@ -85,6 +86,8 @@ class MainWidget : public QMainWindow
  public:
   MainWidget(int argc, char *argv[]);
   static bool inUpdate;
+  ModelManager * getManager() {return m_ModelManager;};
+  virtual ~MainWidget(void) {if (m_ModelManager) delete m_ModelManager;};
  protected:
  
   void dragEnterEvent(QDragEnterEvent *event);
@@ -131,5 +134,6 @@ class MainWidget : public QMainWindow
   QAction * autoUpdateAction;
   // Connect to filewatcher/coserver
   ClientSelection   * pluginB;
+  ModelManager * m_ModelManager;
 };
 #endif // _OSGWIDGET_H_

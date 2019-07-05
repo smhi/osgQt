@@ -38,6 +38,8 @@
 #include "util/misc_util.h"
 
 #include <puTools/miStringFunctions.h>
+#include <puTools/TimeFilter.h>
+#include <puCtools/puCglob.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -415,10 +417,139 @@ std::vector<std::string> ModelManager::getFileNames(const std::string& modelName
 {
   METLIBS_LOG_SCOPE();
   std::vector<std::string> filenames;
+  bool modelFound = false;
+  rawsources.clear();
+  currentModel = modelName;
+  FieldModelGroupInfo_v tmp = getFieldModelGroups();
+  for (size_t i = 0; i < tmp.size(); i++)
+  {
+    if (modelFound) break;
+    FieldModelInfo_v test1 = tmp[i].models;
+    for (size_t j = 0; j < test1.size(); j++)
+    {
+      if (test1[j].modelName == modelName) {
+        modelFound = true;
+        const std::vector<std::string> tokens = miutil::split_protected(test1[j].setupInfo, '"', '"');
+        for (const std::string& tok : tokens) {
+          std::vector<std::string> stokens= miutil::split_protected(tok, '"', '"', "=", true);
+          std::string key = miutil::to_lower(stokens[0]);
+          miutil::remove(key, '"');
+          miutil::remove(stokens[1], '"');
+          if (key=="f") {
+            rawsources.push_back(stokens[1]);
+            break;
+          }
+        } 
+      }
+    }
+  }
+  if (!modelFound)
+    return filenames;
+  
+  makeFileIOinstances();
   /*
   GridCollectionPtr gridCollection = getGridCollection(modelName, "", true);
   if (gridCollection)
     filenames = gridCollection->getRawSources();
   */
+  for (const std::string& sourcename : sources) {
+    filenames.push_back(sourcename);
+  }
   return filenames;
+}
+
+std::set<std::string> ModelManager::getReferenceTimes(const std::string& modelName)
+{
+  METLIBS_LOG_SCOPE();
+  if (not refTimes.empty())
+    return refTimes;
+  currentModel = modelName;
+  std::set<std::string> reftimes;
+  bool modelFound = false;
+  rawsources.clear();
+  FieldModelGroupInfo_v tmp = getFieldModelGroups();
+  for (size_t i = 0; i < tmp.size(); i++)
+  {
+    if (modelFound) break;
+    FieldModelInfo_v test1 = tmp[i].models;
+    for (size_t j = 0; j < test1.size(); j++)
+    {
+      if (test1[j].modelName == modelName) {
+        modelFound = true;
+        const std::vector<std::string> tokens = miutil::split_protected(test1[j].setupInfo, '"', '"');
+        for (const std::string& tok : tokens) {
+          std::vector<std::string> stokens= miutil::split_protected(tok, '"', '"', "=", true);
+          std::string key = miutil::to_lower(stokens[0]);
+          miutil::remove(key, '"');
+          miutil::remove(stokens[1], '"');
+          if (key=="f") {
+            rawsources.push_back(stokens[1]);
+            break;
+          }
+        } 
+      }
+    }
+  }
+  if (!modelFound)
+    return reftimes;
+  
+  makeFileIOinstances();
+  
+   if (not refTimes.empty())
+    return refTimes;
+  return reftimes;
+}
+
+bool ModelManager::makeFileIOinstances()
+{
+  METLIBS_LOG_TIME();
+
+  bool ok = true;
+  sources.clear();
+  refTimes.clear();
+  sources_with_wildcards.clear();
+  timesFromFilename.clear();
+
+  // unpack each raw source - creating one or more GridIO instances from each
+  int index = -1;
+  for (std::string sourcestr : rawsources) {
+    ++index;
+
+    std::set<std::string> tmpsources;
+
+    // init time filter and replace yyyy etc. with ????
+    const miutil::TimeFilter tf(sourcestr);
+
+    // check for wild cards - expand filenames if necessary
+    if (sourcestr.find_first_of("*?") != sourcestr.npos && sourcestr.find("glob:") == sourcestr.npos) {
+      sources_with_wildcards.push_back(sourcestr);
+      const diutil::string_v files = diutil::glob(sourcestr, GLOB_BRACE);
+      if( !files.size() ) {
+        METLIBS_LOG_INFO("No source available for "<<sourcestr);
+        continue;
+      }
+        diutil::insert_all(tmpsources, files);
+    } else {
+      tmpsources.insert(sourcestr);
+    }
+    diutil::insert_all(sources,tmpsources);
+
+    // loop through sources (filenames)
+    for (const std::string& sourcename : tmpsources) {
+
+      //Find time from filename if possible
+      miutil::miTime time;
+      if (tf.getTime(sourcename,time)) {
+        timesFromFilename.insert(time);
+        refTimes.insert(time.isoTime("T"));
+      } 
+    }
+  }
+
+
+  if( !sources.size() ) {
+    METLIBS_LOG_WARN("No sources available for "<<currentModel);
+    return false;
+  }
+  return ok;
 }

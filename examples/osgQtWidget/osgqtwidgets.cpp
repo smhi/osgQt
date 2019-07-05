@@ -385,6 +385,11 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
       {
         std::cerr << test1[j].modelName << std::endl;
         std::cerr << test1[j].setupInfo << std::endl;
+        std::vector<std::string> names = m_ModelManager->getFileNames(test1[j].modelName);
+        for (size_t k = 0; k < names.size(); k++)
+        {
+          std::cerr << names[k] << std::endl;
+        }
       }
     }      
     

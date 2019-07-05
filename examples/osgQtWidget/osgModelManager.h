@@ -26,8 +26,8 @@
  along with Diana; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#ifndef diModelManager_h
-#define diModelManager_h
+#ifndef osgModelManager_h
+#define osgModelManager_h
 
 #include "diCommonFieldTypes.h"
 #include "osgModelManager.h"
@@ -73,17 +73,27 @@ public:
   bool modelOK(const std::string& modelName);
 
   void updateSources();
+  
+  std::set<std::string> getReferenceTimes(const std::string& modelName);
 
   std::vector<std::string> getFileNames(const std::string& modelName);
 
 private:
   bool parseSetup(const std::vector<std::string>& lines, const std::string& token, std::vector<std::string>& errors);
   std::vector<std::string> subsections();
+  bool makeFileIOinstances();
 
 private:
   std::map<std::string, std::string> defaultConfig;
   std::map<std::string, std::string> defaultFile;
   FieldModelGroupInfo_v fieldModelGroups;
+  
+  std::vector<std::string> rawsources;
+  std::vector<std::string> sources_with_wildcards;
+  std::set<std::string> sources;
+  std::set<std::string> refTimes;
+  std::set<miutil::miTime> timesFromFilename;
+  std::string currentModel;
 };
 
 #endif

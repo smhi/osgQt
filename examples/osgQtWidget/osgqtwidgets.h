@@ -29,6 +29,7 @@
 #include <QGraphicsView>
 #include <ClientSelection.h>
 #include "osgModelManager.h"
+#include "friendlyDialog.h"
 
 // Thread that runs the viewer's frame loop as we can't run Qt in the background... 
 class ViewerFrameThread : public QThread
@@ -95,7 +96,11 @@ class MainWidget : public QMainWindow
   void dropEvent(QDropEvent *event);
  protected slots:
   void openFile();
-  void filequit();
+  void fileQuit();
+
+  void openFriendlyDialog(); //open the friendlydialog
+  //void hideFriendlyDialog();
+
   void showHelp();
   void stopAnimation();
   void animationLoop();
@@ -124,6 +129,9 @@ class MainWidget : public QMainWindow
   QToolBar * timerToolbar;
   QAction * openAct;
   QAction * fileQuitAction;
+  
+  QAction * friendlyDialogAction; //friendlyfileloader UI Action
+  
   QAction * helpDocAction;
   QAction * timeBackwardAction;
   QAction * timeForewardAction;
@@ -135,5 +143,6 @@ class MainWidget : public QMainWindow
   // Connect to filewatcher/coserver
   ClientSelection   * pluginB;
   ModelManager * m_ModelManager;
+  friendlyDialog * m_friendlyDialog;
 };
 #endif // _OSGWIDGET_H_

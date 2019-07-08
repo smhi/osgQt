@@ -393,6 +393,10 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
       }
     }      
     
+    m_friendlyDialog = new friendlyDialog(this, m_ModelManager);
+    //connect(m_friendlyDialog, &friendlyDialog::dialogApply, this, &MainWidget::);
+    //connect(m_friendlyDialog, &friendlyDialog::dialogHide, this, &MainWidget::hideFriendlyDialog); 
+    
     OsgWidget* viewer=new OsgWidget(arguments);
     QWidget* widget=viewer->getWidget();
     widget->setMinimumSize(QSize(1024, 768));
@@ -412,7 +416,17 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
     fileMenu->addSeparator();
     fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
-    connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
+    connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( fileQuit() ) );
+    
+    //friendly UI = abstractation of filepaths etc
+    QMenu* viewMenu = menuBar()->addMenu("&View");
+    friendlyDialogAction = new QAction(tr("Load/Select 3D Models"), this); 
+    //friendlyDialogAction->setShortcutContext(Qt::ApplicationShortcut);
+    //friendlyDialogAction->setShortcut(Qt::Key_F6);
+    friendlyDialogAction->setCheckable(false);
+    viewMenu->addAction(friendlyDialogAction);
+    connect( friendlyDialogAction, SIGNAL( triggered() ) /*, this*/, SLOT( openFriendlyDialog() ) );
+    
     
     QMenu* helpMenu = menuBar()->addMenu("&Help");
     helpDocAction = new QAction( tr("Q&uick help"), this );
@@ -535,12 +549,24 @@ void MainWidget::openFile()
     m_updateOperation->updateScene(fileName.toStdString());
 }
 
-void MainWidget::filequit()
+void MainWidget::fileQuit()
 {
   // quit sends aboutToQuit SIGNAL, which is connected to slot writeLogFile
   QApplication::exit(0);
 }
 
+//open model dialog
+void MainWidget::openFriendlyDialog()
+{
+  m_friendlyDialog->updateModelList(); 
+  m_friendlyDialog->show(); 
+}
+/*
+void MainWidget::hideFriendlyDialog()
+{
+  m_friendlyDialog->hide();
+}
+*/
 void MainWidget::showHelp()
 {
   QWidget * widget = new QWidget;

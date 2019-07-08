@@ -1,10 +1,11 @@
 SET(SOURCES_H
   osgqtwidgets.h
+  friendlyDialog.h
   )
 IF ( Qt5Widgets_FOUND )
     SET(TARGET_EXTERNAL_LIBRARIES ${QT_LIBRARIES} )
     QT5_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS
-          "-fosgqtwidgets.h" )
+          "-fosgqtwidgets.h" "-ffriendlyDialog.h" )
     set(OSGQT_QT_VERSION 5)
 ELSE()
     SET(TARGET_EXTERNAL_LIBRARIES ${QT_QTCORE_LIBRARY_RELEASE} ${QT_QTGUI_LIBRARY_RELEASE}
@@ -12,7 +13,7 @@ ELSE()
     ADD_DEFINITIONS(-DUSE_QT4)
     #QT4_CREATE_MOC_COMMAND(${SOURCES_H} "moc_osgqtwidgets.cxx" "" "" "")
 
-    QT4_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS "-fosgqtwidgets.h" )
+    QT4_WRAP_CPP( SOURCES_H_MOC ${SOURCES_H} OPTIONS "-fosgqtwidgets.h" "-ffriendlyDialog.h" )
     set(OSGQT_QT_VERSION 4)
 ENDIF()
 
@@ -62,6 +63,8 @@ SET(TARGET_SRC
   util/diKeyValue.cc
   util/diLineMerger.cc
   util/string_util.cc
+  friendlyDialog.cpp
+  qtTreeFilterProxyModel.cc
   ${SOURCES_H_MOC}
   )
   
@@ -77,6 +80,8 @@ SET(TARGET_H
   util/diLineMerger.h
   util/string_util.h
   util/misc_util.h  
+  friendlyDialog.h
+  qtTreeFilterProxyModel.h
   )
   
 SET(TARGET_IMG

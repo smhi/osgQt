@@ -30,16 +30,48 @@ class QStandardItemModel;
 class QTreeView;
 class QVBoxLayout;
 */
+/**
+   \brief data for one model file
+*/
+struct ModelFileInfo
+{
+  std::string fileName;
+  std::string refTime;
+  ModelFileInfo(const std::string& fn, const std::string& rt) {fileName=fn; refTime=rt;};
+};
+typedef std::vector<ModelFileInfo> ModelFileInfo_v;
+
+/**
+   \brief data for one model
+*/
+struct SelectedModelInfo
+{
+  std::string modelName;
+  
+  ModelFileInfo_v modelFiles;
+  SelectedModelInfo(const std::string& mn, const ModelFileInfo_v& mi) {modelName=mn; modelFiles=mi;};
+};
+/*
+For now, only one model!
+*/
+typedef std::vector<SelectedModelInfo> SelectedModelInfo_v;
+
 class friendlyDialog : public QDialog 
 {
 Q_OBJECT
-   
+
+private: struct SelectedModel{
+std::string modelName;
+std::string refTime;
+};   
 
 public:
   friendlyDialog(QWidget* parent, ModelManager* mm);
   
   void updateModelList(); //
+  void updateDialog();
   void getModel();
+  void archiveMode(bool on);
 
 protected:
   void closeFriendlyDialogEvent(QCloseEvent*);
@@ -49,31 +81,31 @@ private:
   QSortFilterProxyModel* modelFilter;
   QStandardItemModel* modelItems;
   QLineEdit* modelFilterEdit;
-//  QListWidget* modelList;
   QListWidget* reftimeList;
   QListWidget* selectedModelsList;
-  QString getSelectedModelString(); //getSelectedModelString -> getSelectedModel
-
+  //QString getSelectedModelString(); //getSelectedModelString -> getSelectedModel
+  void addModelGroup(int modelGroupIndex);
+  bool useArchive; 
   std::string currentModel;
   std::string modelName;
   QWidget* m_parent;
   FieldModelGroupInfo_v m_modelGroups;
   ModelManager* m_mm;
-
+  std::vector<SelectedModel> selectedModels;
 public Q_SLOTS:
-  void deselectAll(); //org, deselect All Selected -> deselectAll
+  void deselectAll();
 
 private Q_SLOTS:
   void modelListClicked(const QModelIndex& index);
   void filterModels(const QString& filterText);
-//  void modelListClicked(QListWidgetItem*);
   void updateReferencetime();
   void reftimeListClicked(QListWidgetItem*);
+  void selectedModelsListClicked(QListWidgetItem*);
   void deselectClicked();
 //  void helpClicked();
   void applyHideClicked();
   void applyClicked();
-
+  void dHide(); //hides the dialog lmao
 
 
 Q_SIGNALS:

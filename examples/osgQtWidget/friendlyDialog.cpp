@@ -14,7 +14,11 @@
 #include <QTreeView>
 #include <QVBoxLayout>
 
-
+/* completely useless right now
+namespace { //anonymous
+const int ROLE_MODELGROUP = Qt::UserRole +1;
+}//end anon namespace
+*/
 
 friendlyDialog::friendlyDialog(QWidget* parent, ModelManager* mm)
 : m_parent(parent)
@@ -22,6 +26,9 @@ friendlyDialog::friendlyDialog(QWidget* parent, ModelManager* mm)
 {
 
 setWindowTitle(tr("Select Models"));
+
+//archive bool
+useArchive = false;
 
 //modelList
 QLabel* modelListLabel = new QLabel(tr("Models"), this);
@@ -55,6 +62,8 @@ connect(reftimeList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(reftimeLi
 QLabel* selectedModelsLabel = new QLabel(tr("Selected models"), this);
 //QLabel* selectedModelsLabel = TitleLabel(tr("Selected models"), this);
 selectedModelsList = new QListWidget(this);
+selectedModelsList->setSelectionMode(QAbstractItemView::SingleSelection);
+connect(selectedModelsList, SIGNAL(itemClicked(QListWidgetItem*)), SLOT(selectedModelsListClicked(QListWidgetItem*)));
 
 //push button to deselect
 QPushButton* deselectButton = new QPushButton(tr("Deselect"), this);
@@ -69,7 +78,8 @@ connect(deselectAllButton, SIGNAL(clicked()), this, SLOT(deselectAll()));
 //push button to load files selected, automatically hide the dialog, or?
 QPushButton* dialogHideButton = new QPushButton(tr("Hide"), this);
 //QPushButton* dialogHideButton = NormalPushButton(tr("Hide"), this);
-connect(dialogHideButton, SIGNAL(clicked()), this, SLOT(dialogHide()));
+connect(dialogHideButton, SIGNAL(clicked()), this, SLOT(dHide()));
+//connect(dialogHideButton, SIGNAL(clicked()), this, SLOT(dialogHide()));
 //connect(dialogHideButton, &QPushButton::clicked, this, &friendlyDialog::dialogHide);
 QPushButton* dialogApplyHideButton = new QPushButton(tr("Apply + Hide"), this);
 //QPushButton* dialogApplyHideButton = NormalPushButton(tr("Apply + Hide"), this);
@@ -104,15 +114,47 @@ vLayout->addWidget(selectedModelsLabel);
 vLayout->addWidget(selectedModelsList);
 vLayout->addLayout(hLayout2);
 vLayout->addLayout(hLayout3);
+updateDialog();
+
 }
 
 
 void friendlyDialog::updateModelList()
 {
-m_modelGroups = m_mm->getFieldModelGroups();
 
+   modelItems->clear();
+   modelFilterEdit->clear();
+
+   int nr_m = m_modelGroups.size();
+   if (nr_m == 0) return;
+
+   if (useArchive) {
+    for (int l = 0; l < nr_m; l++) {
+       if(m_modelGroups[l].groupType == FieldModelGroupInfo::ARCHIVE_GROUP) {
+       addModelGroup(l);
+        }
+      }
+    }
+
+   for (int i = 0; i < nr_m; i++) {
+    if (m_modelGroups[i].groupType == FieldModelGroupInfo::STANDARD_GROUP) {
+     addModelGroup(i);
+        }
+    }
+   if (selectedModels.size() > 0) deselectAll();
 }
 
+void friendlyDialog::updateDialog()
+{
+   m_modelGroups = m_mm->getFieldModelGroups();
+   updateModelList();
+}
+
+void friendlyDialog::archiveMode(bool on)
+{
+   useArchive = on;
+   updateModelList();
+}
 
 void friendlyDialog::getModel()
 {
@@ -125,20 +167,21 @@ void friendlyDialog::closeFriendlyDialogEvent(QCloseEvent* e)
   Q_EMIT dialogHide();
 }
 
-/*
-void dialogHide()
+/*QString friendlyDialog::getSelectedModelString()
 {
-  hide();
-}
-*/
-QString friendlyDialog::getSelectedModelString()
-{
-
-}
+   QString qstr;
+//   if (modelList->current)
+}*/
 
 void friendlyDialog::deselectAll()
 {
-
+   int n = reftimeList->count();
+   if (n > 0) {
+       reftimeList->blockSignals(true);
+       reftimeList->clearSelection();
+       reftimeList->blockSignals(false);
+     }
+    selectedModelsList->clear(); //yeet
 }
 
 static QString currentItem(QListWidget* list)
@@ -146,9 +189,25 @@ static QString currentItem(QListWidget* list)
 
 }
 
+void friendlyDialog::addModelGroup(int modelGroupIndex)
+{
+   const FieldModelGroupInfo& mgr = m_modelGroups[modelGroupIndex];
+   QStandardItem* group = new QStandardItem(QString::fromStdString(mgr.groupName));
+   group->setData(modelGroupIndex/*, ROLE_MODELGROUP*/);
+   group->setFlags(Qt::ItemIsEnabled);
+   for (const FieldModelInfo& fdmi : mgr.models) {
+   QStandardItem* child = new QStandardItem(QString::fromStdString(fdmi.modelName));
+   //child->setToolTip(QString::fromStdString(fdmi.setupInfo).split("", QString::SkipEmptyParts)-join("\n"));
+   child->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+   group->appendRow(child);
+      }
+   modelItems->appendRow(group);
+}
+
+
 void friendlyDialog::filterModels(const QString& filtertext)
 {
-  modelFilter->setFilterFixedString(filtertext);
+   modelFilter->setFilterFixedString(filtertext);
    if (!filtertext.isEmpty()) {
       modelList->expandAll();
       if (modelFilter->rowCount() > 0) modelList->scrollTo(modelFilter->index(0, 0));
@@ -165,38 +224,104 @@ void friendlyDialog::modelListClicked(const QModelIndex& filterIndex)
    }
    
    reftimeList->clear();
-   //selectedModelsList->clear();
+   selectedModelsList->clear();
 
    const int indexM = clickedItem->row();
    const int indexMGR = parentItem->data().toInt();
 
    currentModel = m_modelGroups[indexMGR].models[indexM].modelName;
-   //const std::set<std::string> refTimes = ->getReferenceTimes(currentModel->text().toStdString());
+   const std::set<std::string> refTimes = m_mm->getReferenceTimes(currentModel);
+   //const std::set<std::string> refTimes = m_mm->getReferenceTimes(currentModel->text().toStdString());
+   if (refTimes.empty()) {
+     const QString currentQStringModel = QString::fromStdString(currentModel);
+    if (!selectedModelsList->count() || currentQStringModel != currentItem(selectedModelsList)) {
+      selectedModelsList->addItem(currentQStringModel);
+    } else {
+      return;
+     }
+   } else {
+   for (const std::string& rt : refTimes) reftimeList->addItem(QString::fromStdString(rt));
+   reftimeList->setCurrentRow(reftimeList->count() - 1);
+   //updateReferencetime();
+   }
 }
 
 void friendlyDialog::updateReferencetime()
 {
-
+   //reftimeList->clear();
+   
 }
 
+void friendlyDialog::reftimeListClicked(QListWidgetItem* item)
+{
+   if (!reftimeList->count()) return;
+    if (item->isSelected()) {
+      SelectedModel SM;
+      SM.modelName = currentModel;
+      SM.refTime = reftimeList->currentItem()->text().toStdString();
+      selectedModels.push_back(SM); 
+      std::string text = SM.modelName + " " + SM.refTime;
+      int newCurrent = selectedModelsList->count();
+      selectedModelsList->addItem(QString::fromStdString(text));
+      selectedModelsList->setCurrentRow(newCurrent);
+      selectedModelsList->item(newCurrent)->setSelected(true);
+
+    } else if (!item->isSelected()) {
+      std::string refTime = item->text().toStdString();
+      int n = selectedModels.size();
+      int u;
+      for (u = 0; u < n; u++) {
+            if (selectedModels[u].modelName == currentModel && selectedModels[u].refTime == refTime)   {
+             selectedModelsList->takeItem(u);
+             break;
+          }
+        }
+   if (u < n) {
+     for (int o = u; o < n -1; o++)
+          selectedModels[o] = selectedModels[o + 1];
+         selectedModels.pop_back();
+       }
+   if ( selectedModelsList->count() ) {
+       int newCurrent = selectedModelsList->count() - 1;
+       if ( u < selectedModelsList->count()) newCurrent = u;
+       selectedModelsList->setCurrentRow(newCurrent);
+       selectedModelsList->item(newCurrent)->setSelected(true);
+       
+       } 
+   }
+}
+/*
 void friendlyDialog::reftimeListClicked(QListWidgetItem*)
 {
 
-}
+}*/
 
+void friendlyDialog::selectedModelsListClicked(QListWidgetItem * item)
+{
+   int index = selectedModelsList->row(item);
+   if (index < 0 || selectedModels.size() == 0) return;
+}
 
 void friendlyDialog::deselectClicked()
 {
-
+   if (selectedModelsList->count()) {
+      int row = selectedModelsList->currentRow();
+      selectedModelsList->takeItem(row);
+   }
 }
 
 
 void friendlyDialog::applyHideClicked()
 {
-
+   dHide();
 }
 
 void friendlyDialog::applyClicked()
 {
 
+}
+
+void friendlyDialog::dHide()
+{
+   this->hide(); //yeet
 }

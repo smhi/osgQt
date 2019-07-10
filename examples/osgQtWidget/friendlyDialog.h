@@ -115,7 +115,7 @@ private Q_SLOTS:
 //  void helpClicked();
   void applyHideClicked();
   void applyClicked();
-  void dHide(); //hides the dialog lmao
+  void dHide(); 
 
 
 Q_SIGNALS:

@@ -461,8 +461,6 @@ std::vector<std::string> ModelManager::getFileNames(const std::string& modelName
 std::set<std::string> ModelManager::getReferenceTimes(const std::string& modelName)
 {
   METLIBS_LOG_SCOPE();
-  if (not refTimes.empty())
-    return refTimes;
   currentModel = modelName;
   std::set<std::string> reftimes;
   bool modelFound = false;

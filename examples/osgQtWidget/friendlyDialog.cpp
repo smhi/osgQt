@@ -20,11 +20,10 @@
 
 #include <puTools/miStringFunctions.h>
 
-/* completely useless right now
 namespace { //anonymous
 const int ROLE_MODELGROUP = Qt::UserRole +1;
 }//end anon namespace
-*/
+
 
 friendlyDialog::friendlyDialog(QWidget* parent, ModelManager* mm)
 : m_parent(parent)
@@ -61,6 +60,7 @@ QLabel* reftimeLabel = new QLabel(tr("Referencetime"), this);
 //QLabel* reftimeLabel = TitleLabel(tr("Referencetime"), this);
 reftimeList = new QListWidget(this);
 reftimeList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+reftimeList->setSortingEnabled(true);
 connect(reftimeList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(reftimeListClicked(QListWidgetItem*)));
 //connect(reftimeList, &QListWidget::itemClicked, this, &reftimeListClicked);
 
@@ -167,7 +167,6 @@ void friendlyDialog::getModel()
 
 }
 
-//maybe just maybe unnecessary
 void friendlyDialog::closeFriendlyDialogEvent(QCloseEvent* e)
 {
   Q_EMIT dialogHide();
@@ -187,7 +186,7 @@ void friendlyDialog::deselectAll()
        reftimeList->clearSelection();
        reftimeList->blockSignals(false);
      }
-    selectedModelsList->clear(); //yeet
+    selectedModelsList->clear(); 
 }
 
 static QString currentItem(QListWidget* list)
@@ -199,7 +198,7 @@ void friendlyDialog::addModelGroup(int modelGroupIndex)
 {
    const FieldModelGroupInfo& mgr = m_modelGroups[modelGroupIndex];
    QStandardItem* group = new QStandardItem(QString::fromStdString(mgr.groupName));
-   group->setData(modelGroupIndex/*, ROLE_MODELGROUP*/);
+   group->setData(modelGroupIndex, ROLE_MODELGROUP);
    group->setFlags(Qt::ItemIsEnabled);
    for (const FieldModelInfo& fdmi : mgr.models) {
    QStandardItem* child = new QStandardItem(QString::fromStdString(fdmi.modelName));
@@ -213,6 +212,7 @@ void friendlyDialog::addModelGroup(int modelGroupIndex)
 
 void friendlyDialog::filterModels(const QString& filtertext)
 {
+   //std::cerr << "filterModels: " << filtertext.toStdString() << std::endl;
    modelFilter->setFilterFixedString(filtertext);
    if (!filtertext.isEmpty()) {
       modelList->expandAll();
@@ -222,20 +222,24 @@ void friendlyDialog::filterModels(const QString& filtertext)
 
 void friendlyDialog::modelListClicked(const QModelIndex& filterIndex)
 {
+   //std::cerr << "modelListClicked: " << filterIndex.row() << std::endl;
    const QModelIndex index = modelFilter->mapToSource(filterIndex);
    QStandardItem* clickedItem = modelItems->itemFromIndex(index);
    QStandardItem* parentItem = clickedItem->parent();
    if (!parentItem) {
      return;
    }
-   
+   reftimeList->blockSignals(true);
+   reftimeList->clearSelection();
    reftimeList->clear();
+   reftimeList->blockSignals(false);
    selectedModelsList->clear();
    selectedModels.clear();
 
    const int indexM = clickedItem->row();
-   const int indexMGR = parentItem->data().toInt();
-
+   const int indexMGR = parentItem->data(ROLE_MODELGROUP).toInt();
+   ////std::cerr << "indexM: " << indexM << std::endl;
+   ////std::cerr << "indexMGR: " << indexMGR << std::endl;
    currentModel = m_modelGroups[indexMGR].models[indexM].modelName;
    refTimes = m_mm->getReferenceTimes(currentModel);
    fileNames = m_mm->getFileNames(currentModel);
@@ -263,6 +267,7 @@ void friendlyDialog::modelListClicked(const QModelIndex& filterIndex)
    } else {
    for (const std::string& rt : refTimes) reftimeList->addItem(QString::fromStdString(rt));
    reftimeList->setCurrentRow(reftimeList->count() - 1);
+   //std::cerr << "reftimeList->count: " << reftimeList->count() << std::endl;
    //updateReferencetime();
    }
 }
@@ -275,6 +280,7 @@ void friendlyDialog::updateReferencetime()
 
 void friendlyDialog::reftimeListClicked(QListWidgetItem* item)
 {
+   //std::cerr << "reftimeListClicked: " << item->text().toStdString() << std::endl;
    if (!reftimeList->count()) return;
     if (item->isSelected()) {
       SelectedModel SM;
@@ -319,12 +325,14 @@ void friendlyDialog::reftimeListClicked(QListWidgetItem*)
 
 void friendlyDialog::selectedModelsListClicked(QListWidgetItem * item)
 {
+   //std::cerr << "selectedModelsListClicked: " << item->text().toStdString() << std::endl;
    int index = selectedModelsList->row(item);
    if (index < 0 || selectedModels.size() == 0) return;
 }
 
 void friendlyDialog::deselectClicked()
 {
+      //std::cerr << "deselectClicked: " <<  std::endl;
    if (selectedModelsList->count()) {
       int row = selectedModelsList->currentRow();
       selectedModelsList->takeItem(row);
@@ -353,7 +361,7 @@ void friendlyDialog::applyHideClicked()
    SelectedModelInfo_v modelinfos;
    std::set<std::string>::iterator it = smlitems.begin();
    for (; it!=smlitems.end(); ++it) {
-     std::cerr << *it << std::endl;
+     //std::cerr << *it << std::endl;
      std::vector<std::string> tokens = miutil::split_protected(*it,' ', ' ', " ", true);
      if (tokens.size() == 2) {
        tmpmodelName = tokens[0];
@@ -365,10 +373,10 @@ void friendlyDialog::applyHideClicked()
        }
        ModelFileInfo mfi(fileName, refTime);
        modelfileinfos.push_back(mfi);
-       std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
+       //std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
      }
    }
-   std::cerr << std::endl;
+   //std::cerr << std::endl;
    SelectedModelInfo smi(tmpmodelName,  modelfileinfos);
    modelinfos.push_back(smi);
    m_selectedModelFiles = modelinfos;
@@ -395,7 +403,7 @@ void friendlyDialog::applyClicked()
    SelectedModelInfo_v modelinfos;
    std::set<std::string>::iterator it = smlitems.begin();
    for (; it!=smlitems.end(); it++) {
-     std::cerr << *it << std::endl;
+     //std::cerr << *it << std::endl;
      std::vector<std::string> tokens = miutil::split_protected(*it,' ', ' ', " ", true);
      if (tokens.size() >= 2) {
        tmpmodelName = tokens[0];
@@ -407,10 +415,10 @@ void friendlyDialog::applyClicked()
        }
        ModelFileInfo mfi(fileName, refTime);
        modelfileinfos.push_back(mfi);
-       std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
+       //std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
      }
    }
-   std::cerr << std::endl;
+   //std::cerr << std::endl;
    SelectedModelInfo smi(tmpmodelName,  modelfileinfos);
    modelinfos.push_back(smi);
    m_selectedModelFiles = modelinfos;
@@ -419,5 +427,5 @@ void friendlyDialog::applyClicked()
 
 void friendlyDialog::dHide()
 {
-   this->hide(); //yeet
+   this->hide();
 }

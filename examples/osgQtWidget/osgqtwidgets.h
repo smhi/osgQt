@@ -115,6 +115,8 @@ class MainWidget : public QMainWindow
   void connectionClosed();
   void processLetter(int fromId, const miQMessage&);
   void setInstanceName(QString instancename);
+ private Q_SLOTS:
+  void getSelectedModelFileInfo();
  private:
   std::string getNewFile(QString & directory);
   QScopedPointer<ViewerFrameThread> m_viewThread;
@@ -125,7 +127,8 @@ class MainWidget : public QMainWindow
   int animationTimer;        ///> the main timer id
   int timeout_ms;            ///> animation timeout in millisecs
   int currentIndex;
-  QStringList m_fileNames;
+  struct SelectedModelInfo m_selectedModelInfo;
+  //QStringList m_fileNames;
   QToolBar * timerToolbar;
   QAction * openAct;
   QAction * fileQuitAction;

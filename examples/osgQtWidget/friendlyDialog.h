@@ -17,6 +17,7 @@
 #include <QTreeView>
 #include <QVBoxLayout>
 #include "osgModelManager.h"
+#include <map>
 /*
 class QPushButton;
 class QHBoxLayout;
@@ -37,6 +38,7 @@ struct ModelFileInfo
 {
   std::string fileName;
   std::string refTime;
+  ModelFileInfo(){;};
   ModelFileInfo(const std::string& fn, const std::string& rt) {fileName=fn; refTime=rt;};
 };
 typedef std::vector<ModelFileInfo> ModelFileInfo_v;
@@ -49,6 +51,7 @@ struct SelectedModelInfo
   std::string modelName;
   
   ModelFileInfo_v modelFiles;
+  SelectedModelInfo(){;};
   SelectedModelInfo(const std::string& mn, const ModelFileInfo_v& mi) {modelName=mn; modelFiles=mi;};
 };
 /*
@@ -63,7 +66,9 @@ Q_OBJECT
 private: struct SelectedModel{
 std::string modelName;
 std::string refTime;
-};   
+};
+
+std::map<std::string, std::string> reftime_filename;   
 
 public:
   friendlyDialog(QWidget* parent, ModelManager* mm);
@@ -72,6 +77,7 @@ public:
   void updateDialog();
   void getModel();
   void archiveMode(bool on);
+  SelectedModelInfo_v getSelectedModelFiles() {return m_selectedModelFiles;};
 
 protected:
   void closeFriendlyDialogEvent(QCloseEvent*);
@@ -92,6 +98,10 @@ private:
   FieldModelGroupInfo_v m_modelGroups;
   ModelManager* m_mm;
   std::vector<SelectedModel> selectedModels;
+  // performance
+  std::set<std::string> refTimes;
+  std::vector<std::string> fileNames;
+  SelectedModelInfo_v m_selectedModelFiles;
 public Q_SLOTS:
   void deselectAll();
 

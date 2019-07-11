@@ -101,6 +101,7 @@ private:
   std::set<std::string> refTimes;
   std::vector<std::string> fileNames;
   SelectedModelInfo_v m_selectedModelFiles;
+  void makeSelectedModelInfo();
 public Q_SLOTS:
   void deselectAll();
 

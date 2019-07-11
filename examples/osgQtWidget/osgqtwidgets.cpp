@@ -381,6 +381,7 @@ MainWidget::MainWidget(int argc, char *argv[])
     
     m_ModelManager = new ModelManager();
     m_ModelManager->parseSetup();
+    /*
     FieldModelGroupInfo_v test = m_ModelManager->getFieldModelGroups();
 // Just debug
     for (size_t i = 0; i < test.size(); i++)
@@ -397,11 +398,11 @@ MainWidget::MainWidget(int argc, char *argv[])
           std::cerr << names[k] << std::endl;
         }
       }
-    }      
+    }
+    */
     
     m_friendlyDialog = new friendlyDialog(this, m_ModelManager);
     connect(m_friendlyDialog, SIGNAL(dialogApply()), this, SLOT(getSelectedModelFileInfo()));
-    //connect(m_friendlyDialog, &friendlyDialog::dialogHide, this, &MainWidget::hideFriendlyDialog); 
     
     OsgWidget* viewer=new OsgWidget(arguments);
     QWidget* widget=viewer->getWidget();
@@ -527,7 +528,6 @@ MainWidget::MainWidget(int argc, char *argv[])
 
 void MainWidget::getSelectedModelFileInfo()
 {
-  std::cerr << "getSelectedModelFileInfo()" << std::endl;
   SelectedModelInfo_v seletedModelFiles = m_friendlyDialog->getSelectedModelFiles();
   // Empty selection, do nothing.
   if (seletedModelFiles.size() == 0) return;

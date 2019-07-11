@@ -50,6 +50,7 @@
 #include <set>
 #include <sstream>
 #include <strstream>
+#include <iostream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -521,7 +522,7 @@ bool ModelManager::makeFileIOinstances()
     // check for wild cards - expand filenames if necessary
     if (sourcestr.find_first_of("*?") != sourcestr.npos && sourcestr.find("glob:") == sourcestr.npos) {
       sources_with_wildcards.push_back(sourcestr);
-      const diutil::string_v files = diutil::glob(sourcestr, GLOB_BRACE);
+      const diutil::string_v files = diutil::glob(sourcestr, GLOB_BRACE | GLOB_NOSORT);
       if( !files.size() ) {
         METLIBS_LOG_INFO("No source available for "<<sourcestr);
         continue;
@@ -534,7 +535,6 @@ bool ModelManager::makeFileIOinstances()
 
     // loop through sources (filenames)
     for (const std::string& sourcename : tmpsources) {
-
       //Find time from filename if possible
       miutil::miTime time;
       if (tf.getTime(sourcename,time)) {

@@ -69,6 +69,7 @@ QLabel* selectedModelsLabel = new QLabel(tr("Selected models"), this);
 //QLabel* selectedModelsLabel = TitleLabel(tr("Selected models"), this);
 selectedModelsList = new QListWidget(this);
 selectedModelsList->setSelectionMode(QAbstractItemView::SingleSelection);
+selectedModelsList->setSortingEnabled(true);
 connect(selectedModelsList, SIGNAL(itemClicked(QListWidgetItem*)), SLOT(selectedModelsListClicked(QListWidgetItem*)));
 
 //push button to deselect
@@ -374,6 +375,15 @@ void friendlyDialog::applyHideClicked()
        ModelFileInfo mfi(fileName, refTime);
        modelfileinfos.push_back(mfi);
        //std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
+     } else if (tokens.size() == 1) {
+       if (fileNames.size()) {
+         for (int i = 0; i < fileNames.size();i++) {
+           tmpmodelName = tokens[0];
+           std::cerr << tmpmodelName << ", " << refTime << ", " << fileNames[i] << std::endl;
+           ModelFileInfo mfi(fileNames[i], refTime);
+           modelfileinfos.push_back(mfi);
+         }
+       }
      }
    }
    //std::cerr << std::endl;
@@ -416,6 +426,15 @@ void friendlyDialog::applyClicked()
        ModelFileInfo mfi(fileName, refTime);
        modelfileinfos.push_back(mfi);
        //std::cerr << tmpmodelName << ", " << refTime << ", " << fileName << std::endl;
+     } else if (tokens.size() == 1) {
+       if (fileNames.size()) {
+         for (int i = 0; i < fileNames.size();i++) {
+           tmpmodelName = tokens[0];
+           std::cerr << tmpmodelName << ", " << refTime << ", " << fileNames[i] << std::endl;
+           ModelFileInfo mfi(fileNames[i], refTime);
+           modelfileinfos.push_back(mfi);
+         }
+       }
      }
    }
    //std::cerr << std::endl;

@@ -89,7 +89,6 @@ private:
   QLineEdit* modelFilterEdit;
   QListWidget* reftimeList;
   QListWidget* selectedModelsList;
-  //QString getSelectedModelString(); //getSelectedModelString -> getSelectedModel
   void addModelGroup(int modelGroupIndex);
   bool useArchive; 
   std::string currentModel;
@@ -108,8 +107,7 @@ public Q_SLOTS:
 private Q_SLOTS:
   void modelListClicked(const QModelIndex& index);
   void filterModels(const QString& filterText);
-  void updateReferencetime();
-  void reftimeListClicked(QListWidgetItem*);
+  void getSelectedReftimes();
   void selectedModelsListClicked(QListWidgetItem*);
   void deselectClicked();
 //  void helpClicked();

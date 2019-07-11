@@ -1,5 +1,5 @@
 #include "osgqtwidgets.h"
-
+#include <QMessageBox>
 #include <QHBoxLayout>
 #include <osgDB/WriteFile>
 #include <osgViewer/ViewerEventHandlers>
@@ -530,11 +530,20 @@ void MainWidget::getSelectedModelFileInfo()
 {
   SelectedModelInfo_v seletedModelFiles = m_friendlyDialog->getSelectedModelFiles();
   // Empty selection, do nothing.
-  if (seletedModelFiles.size() == 0) return;
+  if (seletedModelFiles.size() == 0) {
+    QMessageBox::information(0, QString("osgqt %1").arg("1.0"),
+        QString("No models found."));
+    return;
+  }
+  
+  if (seletedModelFiles[0].modelFiles.size() == 0) {
+    QMessageBox::information(0, QString("osgqt %1").arg("1.0"),
+        QString("No files found."));
+    return;
+  }
   // Only one model supported
   m_selectedModelInfo = seletedModelFiles[0];
   currentIndex = 0;
-  MainWidget::inUpdate = true;
   QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();    
   m_updateOperation->updateScene(fileName.toStdString());
   if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)

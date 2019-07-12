@@ -43,9 +43,9 @@ void QWidgetImage::render()
     if (_adapter->requiresRendering()) _adapter->render();
 }
 
-void QWidgetImage::scaleImage(int s,int t,int /*r*/, GLenum /*newDataType*/)
+void QWidgetImage::scaleImage(int s_in,int t_in,int /*r*/, GLenum /*newDataType*/)
 {
-    _adapter->resize(s, t);
+    _adapter->resize(s_in, t_in);
 }
 
 void QWidgetImage::setFrameLastRendered(const osg::FrameStamp* frameStamp)

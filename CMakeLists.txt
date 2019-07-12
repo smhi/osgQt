@@ -129,8 +129,8 @@ PROJECT(osgQt)
 
 SET(OSGQT_MAJOR_VERSION 3)
 SET(OSGQT_MINOR_VERSION 6)
-SET(OSGQT_PATCH_VERSION 0)
-SET(OSGQT_SOVERSION 156)
+SET(OSGQT_PATCH_VERSION 3)
+SET(OSGQT_SOVERSION 158)
 
 # set to 0 when not a release candidate, non zero means that any generated
 # git tags will be treated as release candidates of given number

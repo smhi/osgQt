@@ -1,5 +1,5 @@
 #include "osgqtwidgets.h"
-
+#include <QMessageBox>
 #include <QHBoxLayout>
 #include <osgDB/WriteFile>
 #include <osgViewer/ViewerEventHandlers>
@@ -40,10 +40,12 @@
 
 
 #include <string.h>
+#include <string>
 
 #include <unistd.h>
 
 #include <memory>
+#include <iostream>
 
 #include "back.xpm"
 #include "start.xpm"
@@ -52,10 +54,17 @@
 #include "loop.xpm"
 #include "forward.xpm"
 #include "autoupdate.xpm"
+#include <QMimeData>
 
 #include <ClientSelection.h>
 #include <miMessage.h>
 #include <QLetterCommands.h>
+#include "diUtilities.h"
+#include "util/misc_util.h"
+
+#include <puTools/miStringFunctions.h>
+#include <puTools/TimeFilter.h>
+
 
 bool MainWidget::inUpdate = false;
 
@@ -129,13 +138,8 @@ OsgWidget::OsgWidget(osg::ArgumentParser& arguments,QWidget *parent):Viewer(argu
         }
     }
 
-
-#if QT_VERSION >= 0x050000
-    // Qt5 is currently crashing and reporting "Cannot make QOpenGLContext current in a different thread" when the viewer is run multi-threaded, this is regression from Qt4
-    osgViewer::ViewerBase::ThreadingModel threadingModel = osgViewer::ViewerBase::SingleThreaded;
-#else
     osgViewer::ViewerBase::ThreadingModel threadingModel = osgViewer::ViewerBase::CullDrawThreadPerContext;
-#endif
+
     setThreadingModel(threadingModel);
     m_root=new osg::Group;
     
@@ -264,6 +268,12 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
           osg::Node* oldnode = m_root->getChild(0);
           float afProperty_value = -1.0; 
           float tpProperty_value = -1.0;
+          float sampleDensityProperty_value = -1.0;
+          float isoProperty_value = -1.0;
+          /*
+          float mipProperty_value = -1.0;
+          float lightingProperty_value = -1.0;
+          */
           osgVolume::ImageLayer* imageLayer = 0;
           FindVolumeTiles fvt;
           oldnode->accept(fvt);
@@ -287,6 +297,22 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
               if (cpv._transparencyProperty.valid()) {
                 tpProperty_value=cpv._transparencyProperty->getValue();
               }
+              if (cpv._sampleDensityProperty.valid()) {
+                sampleDensityProperty_value=cpv._sampleDensityProperty->getValue();
+              }
+              if (cpv._isoProperty.valid()) {
+                isoProperty_value=cpv._isoProperty->getValue();
+              }
+              /*
+              Not scalar properties.
+              if (cpv._mipProperty.valid()) {
+                mipProperty_value=cpv._mipProperty->getValue();
+              }
+              if (cpv._lightingProperty.valid()) {
+                lightingProperty_value=cpv._lightingProperty->getValue();
+              }
+              */
+
             }
           }
           imageLayer = 0;
@@ -314,6 +340,26 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
                 if (tpProperty_value != -1.0)
                   cpv._transparencyProperty->setValue(tpProperty_value);
               }
+              if (cpv._sampleDensityProperty.valid()) {
+                if (sampleDensityProperty_value != -1.0)
+                  cpv._sampleDensityProperty->setValue(sampleDensityProperty_value);
+              }
+              if (cpv._isoProperty.valid()) {
+                if (isoProperty_value != -1.0)
+                  cpv._isoProperty->setValue(isoProperty_value);
+              }
+              /*
+              Not scalar properties
+              if (cpv._mipProperty.valid()) {
+                if (mipProperty_value != -1.0)
+                  cpv._mipProperty->setValue(mipProperty_value);
+              }
+              if (cpv._lightingProperty.valid()) {
+                if (lightingProperty_value != -1.0)
+                  cpv._lightingProperty->setValue(lightingProperty_value);
+              }
+              */
+              
             }
           }
         } // End dir names equal
@@ -327,10 +373,36 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
     getWidget()->update();
 }
 
-MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),currentIndex(0),timeout_ms(1000)
+MainWidget::MainWidget(int argc, char *argv[])
+  :timeron(0),timeloop(false),currentIndex(0),timeout_ms(1000)
 {
     // Parse the arguments and send to viewer implementation
     osg::ArgumentParser arguments(&argc,argv);
+    
+    m_ModelManager = new ModelManager();
+    m_ModelManager->parseSetup();
+    /*
+    FieldModelGroupInfo_v test = m_ModelManager->getFieldModelGroups();
+// Just debug
+    for (size_t i = 0; i < test.size(); i++)
+    {
+      std::cerr << test[i].groupName << std::endl;
+      FieldModelInfo_v test1 = test[i].models;
+      for (size_t j = 0; j < test1.size(); j++)
+      {
+        std::cerr << test1[j].modelName << std::endl;
+        std::cerr << test1[j].setupInfo << std::endl;
+        std::vector<std::string> names = m_ModelManager->getFileNames(test1[j].modelName);
+        for (size_t k = 0; k < names.size(); k++)
+        {
+          std::cerr << names[k] << std::endl;
+        }
+      }
+    }
+    */
+    
+    m_friendlyDialog = new friendlyDialog(this, m_ModelManager);
+    connect(m_friendlyDialog, SIGNAL(dialogApply()), this, SLOT(getSelectedModelFileInfo()));
     
     OsgWidget* viewer=new OsgWidget(arguments);
     QWidget* widget=viewer->getWidget();
@@ -351,7 +423,17 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
     fileMenu->addSeparator();
     fileMenu->addAction( fileQuitAction );
     connect(openAct,SIGNAL(triggered()),this,SLOT(openFile()));
-    connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( filequit() ) );
+    connect( fileQuitAction, SIGNAL( triggered() ) , SLOT( fileQuit() ) );
+    
+    //friendly UI = abstractation of filepaths etc
+    QMenu* viewMenu = menuBar()->addMenu("&View");
+    friendlyDialogAction = new QAction(tr("Load/Select 3D Models"), this); 
+    //friendlyDialogAction->setShortcutContext(Qt::ApplicationShortcut);
+    //friendlyDialogAction->setShortcut(Qt::Key_F6);
+    friendlyDialogAction->setCheckable(false);
+    viewMenu->addAction(friendlyDialogAction);
+    connect( friendlyDialogAction, SIGNAL( triggered() ) /*, this*/, SLOT( openFriendlyDialog() ) );
+    
     
     QMenu* helpMenu = menuBar()->addMenu("&Help");
     helpDocAction = new QAction( tr("Q&uick help"), this );
@@ -444,13 +526,45 @@ MainWidget::MainWidget(int argc, char *argv[]):timeron(0),timeloop(false),curren
     setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
 
-void MainWidget::dropEvent( QDropEvent *event )
+void MainWidget::getSelectedModelFileInfo()
 {
-    if(event->mimeData()->hasFormat("text/uri-list")){
-        QString fileName = event->mimeData()->urls().first().toLocalFile();
-        m_fileNames.append(fileName);
-        m_updateOperation->updateScene(fileName.toStdString());
-        setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+  SelectedModelInfo_v seletedModelFiles = m_friendlyDialog->getSelectedModelFiles();
+  // Empty selection, do nothing.
+  if (seletedModelFiles.size() == 0) {
+    QMessageBox::information(0, QString("osgqt %1").arg("1.0"),
+        QString("No models found."));
+    return;
+  }
+  
+  if (seletedModelFiles[0].modelFiles.size() == 0) {
+    QMessageBox::information(0, QString("osgqt %1").arg("1.0"),
+        QString("No files found."));
+    return;
+  }
+  // Only one model supported
+  m_selectedModelInfo = seletedModelFiles[0];
+  currentIndex = 0;
+  QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();    
+  m_updateOperation->updateScene(fileName.toStdString());
+  if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
+    setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
+  else
+    setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + m_selectedModelInfo.modelFiles[currentIndex].refTime.c_str());
+}
+
+void MainWidget::dropEvent( QDropEvent *event_in )
+{
+    if(event_in->mimeData()->hasFormat("text/uri-list")){
+        QString fileName = event_in->mimeData()->urls().first().toLocalFile();
+        ModelFileInfo_v tmpMFI;
+        std::string dummyRefTime;
+        ModelFileInfo mfi(fileName.toStdString(),dummyRefTime);
+        tmpMFI.push_back(mfi);
+        m_selectedModelInfo.modelFiles = tmpMFI;
+        m_selectedModelInfo.modelName="USER_SELECTED";
+        currentIndex = 0;
+        fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
+        setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
 }
 
@@ -466,20 +580,41 @@ void MainWidget::openFile()
     }
     if (!fileNames.isEmpty())  
     {
-      m_fileNames = fileNames;
+      ModelFileInfo_v tmpMFI;
+      //Convert from QString to std::string
+      for (size_t i = 0; i < fileNames.size(); i++)
+      {
+        std::string dummyRefTime;
+        ModelFileInfo mfi(fileNames.at(i).toStdString(),dummyRefTime);
+        tmpMFI.push_back(mfi);
+      }
+      m_selectedModelInfo.modelFiles = tmpMFI;
+      m_selectedModelInfo.modelName="USER_SELECTED";
       currentIndex = 0;
-      fileName = fileNames.at(currentIndex);
-      setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+      fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
     m_updateOperation->updateScene(fileName.toStdString());
 }
 
-void MainWidget::filequit()
+void MainWidget::fileQuit()
 {
   // quit sends aboutToQuit SIGNAL, which is connected to slot writeLogFile
   QApplication::exit(0);
 }
 
+//open model dialog
+void MainWidget::openFriendlyDialog()
+{
+  m_friendlyDialog->updateModelList(); 
+  m_friendlyDialog->show(); 
+}
+/*
+void MainWidget::hideFriendlyDialog()
+{
+  m_friendlyDialog->hide();
+}
+*/
 void MainWidget::showHelp()
 {
   QWidget * widget = new QWidget;
@@ -545,10 +680,10 @@ void MainWidget::showHelp()
   label->setWordWrap(true);
   label->setTextInteractionFlags(Qt::TextEditorInteraction);
 
-  QPalette palette = label->palette();
-  palette.setColor(QPalette::Highlight, Qt::darkBlue);
-  palette.setColor(QPalette::HighlightedText, Qt::white);
-  label->setPalette(palette);
+  QPalette palette_ = label->palette();
+  palette_.setColor(QPalette::Highlight, Qt::darkBlue);
+  palette_.setColor(QPalette::HighlightedText, Qt::white);
+  label->setPalette(palette_);
 
   QScrollArea* scrollArea = new QScrollArea;
   scrollArea->setWidget(label);
@@ -594,7 +729,8 @@ void MainWidget::timerEvent(QTimerEvent *e)
       if (timeron == 1) {
         // stop animation if end of stringlist
         currentIndex++;
-        if (currentIndex > m_fileNames.size() - 1) {
+        
+        if (currentIndex > m_selectedModelInfo.modelFiles.size() - 1) {
           stopAnimation();
           return;
         }
@@ -602,7 +738,7 @@ void MainWidget::timerEvent(QTimerEvent *e)
         // stop animation if beginning of stringlist
         currentIndex--;
         if (currentIndex < 0) {
-          currentIndex = m_fileNames.size() - 1;
+          currentIndex = m_selectedModelInfo.modelFiles.size() - 1;
           stopAnimation();
           return;
         }
@@ -611,19 +747,22 @@ void MainWidget::timerEvent(QTimerEvent *e)
       if (timeron == 1) {
         // loop to the beginning if end of stringlist
         currentIndex++;
-        if (currentIndex > m_fileNames.size() - 1)
+        if (currentIndex > m_selectedModelInfo.modelFiles.size() - 1)
           currentIndex = 0;
       } else if (timeron == -1) {
         // loop to the end if beginning of stringlist
         currentIndex--;
         if (currentIndex < 0)
-          currentIndex = m_fileNames.size() - 1;
+          currentIndex = m_selectedModelInfo.modelFiles.size() - 1;
       }
     }
     MainWidget::inUpdate = true;
-    QString fileName = m_fileNames.at(currentIndex);    
+    QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();    
     m_updateOperation->updateScene(fileName.toStdString());
-    setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+    if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
+    else
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + m_selectedModelInfo.modelFiles[currentIndex].refTime.c_str());
   }
 }
 
@@ -653,29 +792,34 @@ void MainWidget::animationStop()
 {
   stopAnimation();
 }
-
 void MainWidget::stepforward()
 {
   if (timeron) return;
-  if (!m_fileNames.size()) return;
+  if (!m_selectedModelInfo.modelFiles.size()) return;
   currentIndex++;
-  if (currentIndex > m_fileNames.size() - 1)
+  if (currentIndex > m_selectedModelInfo.modelFiles.size() - 1)
     currentIndex = 0;
-  QString fileName = m_fileNames.at(currentIndex);
+  QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
   m_updateOperation->updateScene(fileName.toStdString());
-  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+  if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
+    else
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + m_selectedModelInfo.modelFiles[currentIndex].refTime.c_str());
 }
 
 void MainWidget::stepback()
 {
   if (timeron) return;
-  if (!m_fileNames.size()) return;
+  if (!m_selectedModelInfo.modelFiles.size()) return;
   currentIndex--;
   if (currentIndex < 0)
-    currentIndex = m_fileNames.size() - 1;
-  QString fileName = m_fileNames.at(currentIndex);
+    currentIndex = m_selectedModelInfo.modelFiles.size() - 1;
+  QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
   m_updateOperation->updateScene(fileName.toStdString());
-  setWindowTitle("osgQtWidget - " + fileName.mid(fileName.lastIndexOf('/') + 1));
+  if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
+    else
+      setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + m_selectedModelInfo.modelFiles[currentIndex].refTime.c_str());
 }
 
 void MainWidget::autoUpdate()
@@ -700,6 +844,7 @@ std::string MainWidget::getNewFile(QString & directory)
   QDir d(directory);
 	d.setSorting(QDir::Time|QDir::Reversed);
 	QStringList patterns("*.ive");
+  patterns.append("*.gz");
   QFileInfoList list = d.entryInfoList(patterns);
   QStringList theFiles;
   if (list.size() > 0)
@@ -712,46 +857,151 @@ std::string MainWidget::getNewFile(QString & directory)
 		}
   }
   // Sanity check
-  
-  QList<QString>::iterator i = m_fileNames.begin();
-  for (; i != m_fileNames.end(); i++)
-  {
-    if (!theFiles.contains(*i)) {
-      // File removed from disk ?
-      i=m_fileNames.erase(i);
+  if (theFiles.size() > 0) {
+    std::vector<ModelFileInfo>::iterator i = m_selectedModelInfo.modelFiles.begin();
+    for (; i != m_selectedModelInfo.modelFiles.end();)
+    {
+      if (!theFiles.contains(QString(i->fileName.c_str()))) {
+        // File removed from disk ?
+        i=m_selectedModelInfo.modelFiles.erase(i);
+      } else {
+        i++;
+      }
     }
-	}
+  }
   return theFile.toStdString();
 }
 
 void MainWidget::processLetter(int fromId, const miQMessage &qletter)
 {
+  miMessage letter;
+  convert(fromId, 0 /*my id, unused*/, qletter, letter);
   const QString& command = qletter.command();
   // If autoupdate is active, reread sat/radarfiles and
   // show the latest timestep
   if (command == qmstrings::directory_changed) {
-    QString dir = qletter.getCommonValue("directory changed");
-    QString currentFileName = m_updateOperation->getNodeFileName().c_str();
-    if (!currentFileName.contains(dir))
+    const int c_cmd = qletter.findCommonDesc("directory changed");
+    QString dir = qletter.getCommonValue(c_cmd);
+    std::string tmp = m_updateOperation->getNodeFileName();
+    std::string currentDir = tmp.substr(0,tmp.find_last_of("/"));
+    if (currentDir != dir.toStdString())
       return;
-    if (doAutoUpdate) {
-      
+    if (doAutoUpdate) {      
       std::string new_file = getNewFile(dir);
       if (timeron) {
         // check if animation is on, insert to the end of stringlist.
         // check for duplicates
-        if(!m_fileNames.contains(new_file.c_str())) {
-          m_fileNames.append(new_file.c_str());
+        std::vector<ModelFileInfo>::iterator imfi = m_selectedModelInfo.modelFiles.begin();
+        bool found = false;
+        for (; imfi != m_selectedModelInfo.modelFiles.end();imfi++)
+        {
+          if (imfi->fileName == new_file)
+          {
+            found = true;
+          }
+            
+        }
+        if(!found) {
+          // Get setupinfo from ModelManager
+          std::string refTime;
+          if (m_selectedModelInfo.modelName != "USER_SELECTED")
+          {
+            // Model from friendlDialog, get time from model
+            std::string setupInfo;
+            FieldModelGroupInfo_v fmgi = m_ModelManager->getFieldModelGroups();
+            for (size_t i = 0; i < fmgi.size(); i++)
+            {
+              if (!setupInfo.empty()) break;
+              FieldModelInfo_v fmi = fmgi[i].models;
+              for (size_t j = 0; j < fmi.size(); j++)
+              {
+                // Get setupinfo
+                if (fmi[j].modelName == m_selectedModelInfo.modelName)
+                {
+                  setupInfo = fmi[j].setupInfo;
+                  break;
+                }
+              }
+            }
+            std::string sourcestr;
+            const std::vector<std::string> tokens = miutil::split_protected(setupInfo, '"', '"');
+            for (const std::string& tok : tokens) {
+              std::vector<std::string> stokens= miutil::split_protected(tok, '"', '"', "=", true);
+              std::string key = miutil::to_lower(stokens[0]);
+              miutil::remove(key, '"');
+              miutil::remove(stokens[1], '"');
+              if (key=="f") {
+                sourcestr = stokens[1];
+                break;
+              }
+            } 
+            const miutil::TimeFilter tf(sourcestr);
+            miutil::miTime time;
+            if (tf.getTime(new_file,time)) {
+              refTime = time.isoTime("T");
+            } 
+          }
+          ModelFileInfo mfi(new_file,refTime);
+          m_selectedModelInfo.modelFiles.push_back(mfi);
         }
         
       }
       else {
         // if not, insert at the end, and read the new model.
         // Check for duplicates
-        if(!m_fileNames.contains(new_file.c_str())) {
-          m_fileNames.append(new_file.c_str());
-          // set the index to the next newest file
-          currentIndex = m_fileNames.size() - 2;
+        std::vector<ModelFileInfo>::iterator imfi = m_selectedModelInfo.modelFiles.begin();
+        bool found = false;
+        for (; imfi != m_selectedModelInfo.modelFiles.end();imfi++)
+        {
+          if (imfi->fileName == new_file)
+          {
+            found = true;
+          }
+            
+        }
+        if(!found) {
+           // Get setupinfo from ModelManager
+          std::string refTime;
+          if (m_selectedModelInfo.modelName != "USER_SELECTED")
+          {
+            // Model from friendlDialog, get time from model
+            std::string setupInfo;
+            FieldModelGroupInfo_v fmgi = m_ModelManager->getFieldModelGroups();
+            for (size_t i = 0; i < fmgi.size(); i++)
+            {
+              if (!setupInfo.empty()) break;
+              FieldModelInfo_v fmi = fmgi[i].models;
+              for (size_t j = 0; j < fmi.size(); j++)
+              {
+                // Get setupinfo
+                if (fmi[j].modelName == m_selectedModelInfo.modelName)
+                {
+                  setupInfo = fmi[j].setupInfo;
+                  break;
+                }
+              }
+            }
+            std::string sourcestr;
+            const std::vector<std::string> tokens = miutil::split_protected(setupInfo, '"', '"');
+            for (const std::string& tok : tokens) {
+              std::vector<std::string> stokens= miutil::split_protected(tok, '"', '"', "=", true);
+              std::string key = miutil::to_lower(stokens[0]);
+              miutil::remove(key, '"');
+              miutil::remove(stokens[1], '"');
+              if (key=="f") {
+                sourcestr = stokens[1];
+                break;
+              }
+            } 
+            const miutil::TimeFilter tf(sourcestr);
+            miutil::miTime time;
+            if (tf.getTime(new_file,time)) {
+              refTime = time.isoTime("T");
+            } 
+          }
+          ModelFileInfo mfi(new_file,refTime);
+          m_selectedModelInfo.modelFiles.push_back(mfi);
+          currentIndex = m_selectedModelInfo.modelFiles.size() - 2;
           // Sleep for some time to avoid sync problems with the file system
           sleep(5);
           stepforward();
@@ -775,10 +1025,10 @@ void MainWidget::processLetter(int fromId, const miQMessage &qletter)
   }
 }
 
-void MainWidget::dragEnterEvent( QDragEnterEvent *event )
+void MainWidget::dragEnterEvent( QDragEnterEvent *event_in )
 {
-    if (event->mimeData()->hasFormat("text/uri-list"))
-        event->acceptProposedAction();
+    if (event_in->mimeData()->hasFormat("text/uri-list"))
+        event_in->acceptProposedAction();
 }
 
 UpdateOperation::UpdateOperation()

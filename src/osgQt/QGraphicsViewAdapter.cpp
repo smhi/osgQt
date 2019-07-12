@@ -129,16 +129,16 @@ void QGraphicsViewAdapter::repaintRequestedSlot(const QRectF&)
     _requiresRendering = true;
 }
 
-void QGraphicsViewAdapter::customEvent ( QEvent * event )
+void QGraphicsViewAdapter::customEvent ( QEvent * event_in )
 {
-    if (event->type()==MYQKEYEVENT)
+    if (event_in->type()==MYQKEYEVENT)
     {
-        MyQKeyEvent* keyEvent = (MyQKeyEvent*)event;
+        MyQKeyEvent* keyEvent = (MyQKeyEvent*)event_in;
         handleKeyEvent(keyEvent->_key, keyEvent->_down);
     }
-    else if (event->type()==MYQPOINTEREVENT)
+    else if (event_in->type()==MYQPOINTEREVENT)
     {
-        MyQPointerEvent* pointerEvent = (MyQPointerEvent*)event;
+        MyQPointerEvent* pointerEvent = (MyQPointerEvent*)event_in;
         handlePointerEvent(pointerEvent->_x, pointerEvent->_y, pointerEvent->_buttonMask);
     }
 }
@@ -402,15 +402,15 @@ bool QGraphicsViewAdapter::handlePointerEvent(int x, int y, int buttonMask)
             if (targetWidget) targetWidget->setFocus(Qt::MouseFocusReason);
         }
 
-        QMouseEvent event(eventType, globalPos, qtButton, qtMouseButtons, 0);
-        QCoreApplication::sendEvent(_graphicsView->viewport(), &event);
+        QMouseEvent event_(eventType, globalPos, qtButton, qtMouseButtons, 0);
+        QCoreApplication::sendEvent(_graphicsView->viewport(), &event_);
 
         _previousButtonMask = buttonMask;
     }
     else if (x != _previousMouseX || y != _previousMouseY)
     {
-        QMouseEvent event(QEvent::MouseMove, globalPos, Qt::NoButton, qtMouseButtons, 0);
-        QCoreApplication::sendEvent(_graphicsView->viewport(), &event);
+        QMouseEvent event_(QEvent::MouseMove, globalPos, Qt::NoButton, qtMouseButtons, 0);
+        QCoreApplication::sendEvent(_graphicsView->viewport(), &event_);
 
         _previousMouseX = x;
         _previousMouseY = y;
@@ -478,8 +478,8 @@ bool QGraphicsViewAdapter::handleKeyEvent(int key, bool keyDown)
         input = QChar(key);
     }
 
-    QKeyEvent event(eventType, qtkey, _qtKeyModifiers, input);
-    QCoreApplication::sendEvent(_graphicsScene.data(), &event);
+    QKeyEvent event_(eventType, qtkey, _qtKeyModifiers, input);
+    QCoreApplication::sendEvent(_graphicsScene.data(), &event_);
     return true;
 }
 

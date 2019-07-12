@@ -1,0 +1,176 @@
+
+#include "diUtilities.h"
+
+#include "util/string_util.h"
+
+//#include "diField/diRectangle.h"
+
+#include <puCtools/glob_cache.h>
+#include <puCtools/puCglob.h>
+#include <puTools/miStringFunctions.h>
+
+#include <curl/curl.h>
+
+#include <cstring>
+#include <fstream>
+
+#define MILOGGER_CATEGORY "diana.Utilities"
+#include <miLogger/miLogging.h>
+
+namespace diutil {
+
+string_v glob(const std::string& pattern, int glob_flags, bool& error)
+{
+  glob_t globBuf;
+  error = (glob(pattern.c_str(), glob_flags, 0, &globBuf) != 0);
+
+  string_v matches;
+  if (not error)
+    matches = string_v(globBuf.gl_pathv, globBuf.gl_pathv + globBuf.gl_pathc);
+
+  globfree(&globBuf);
+  return matches;
+}
+
+int find_index(bool repeat, int available, int i)
+{
+  if (repeat) {
+    i %= available;
+    if (i<0)
+      i += available;
+    return i;
+  }
+  else if (i<=0)
+    return 0;
+  else if (i<available)
+    return i;
+  else
+    return available-1;
+}
+
+bool getFromFile(const std::string& filename, string_v& lines)
+{
+  std::ifstream file(filename.c_str());
+  if (!file)
+    return false;
+
+  std::string str;
+  while (getline(file, str))
+    lines.push_back(str);
+
+  file.close();
+  return true;
+}
+
+namespace detail {
+/* assumes that lines is a non-empty string vector; appends to the
+ * last string until '\n', then adds a new string and repeats
+ */
+void append_chars_split_newline(string_v& lines, const char* buffer, size_t nbuffer)
+{
+  const char* newline;
+  while (nbuffer > 0 and (newline = (const char*)std::memchr(buffer, '\n', nbuffer))) {
+    std::string& back = lines.back();
+    back.insert(back.end(), buffer, newline);
+    nbuffer -= (newline - buffer) + 1;
+    buffer = newline + 1;
+    lines.push_back(std::string());
+  }
+  if (nbuffer > 0) {
+    std::string& back = lines.back();
+    back.insert(back.end(), buffer, buffer + nbuffer);
+  }
+}
+} // namespace detail
+
+/* assumes that userp points to a non-empty string vector */
+static size_t curl_write_callback(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+  const size_t nbuffer = size * nmemb;
+  string_v& lines = *reinterpret_cast<string_v*>(userp);
+  detail::append_chars_split_newline(lines, (const char*)buffer, nbuffer);
+  return nbuffer;
+}
+
+bool getFromHttp(const std::string &url_, string_v& lines)
+{
+  METLIBS_LOG_SCOPE();
+  std::string url(url_);
+
+  CURL *easy_handle = curl_easy_init();
+  if (not easy_handle)
+    return false;
+
+  lines.push_back(std::string());
+
+  const size_t query_start = url.find('?');
+  if (url.size() <= 1024 or query_start == std::string::npos) {
+    METLIBS_LOG_DEBUG("GET '" << url << "'");
+  } else {
+    const std::string post_par = url.substr(query_start+1);
+    url = url.substr(0, query_start);
+    METLIBS_LOG_DEBUG("POST url='" << url << "' par='" << post_par << "'");
+    curl_easy_setopt(easy_handle, CURLOPT_POST, 1);
+    curl_easy_setopt(easy_handle, CURLOPT_COPYPOSTFIELDS, post_par.c_str()); // make a copy, post_par goes out of scope
+  }
+  curl_easy_setopt(easy_handle, CURLOPT_URL, url.c_str());
+
+  curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, curl_write_callback);
+  curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &lines);
+  const CURLcode res = curl_easy_perform(easy_handle);
+  long http_code = 0;
+  curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_easy_cleanup(easy_handle);
+
+  METLIBS_LOG_DEBUG(LOGVAL(res) << LOGVAL(http_code));
+  return (res == 0) and http_code == 200;
+}
+
+bool getFromAny(const std::string &uof, string_v& lines)
+{
+  if (diutil::startswith(uof, "http://") || diutil::startswith(uof, "https://"))
+    return getFromHttp(uof, lines);
+
+  if (diutil::startswith(uof, "file://"))
+    return getFromFile(uof.substr(7), lines);
+
+  return diutil::getFromFile(uof, lines);
+}
+
+std::vector<std::string> numberList(float number, const float* enormal)
+{
+  int nenormal = 0;
+  while (enormal[nenormal] > 0)
+    nenormal += 1;
+
+  const float e = number > 0 ? number : 1;
+  const float elog = log10f(e);
+  const int ielog = int((elog >= 0) ? elog : elog - 0.99999);
+  const float ex = powf(10., ielog);
+  int n = 0;
+  float d = fabsf(e - enormal[0] * ex);
+  for (int i = 1; i < nenormal; ++i) {
+    const float dd = fabsf(e - enormal[i] * ex);
+    if (d > dd) {
+      d = dd;
+      n = i;
+    }
+  }
+
+  std::vector<std::string> vnumber;
+  const int nupdown = nenormal * 2 / 3;
+
+  for (int i = n - nupdown; i <= n + nupdown; ++i) {
+    int j = i / nenormal;
+    int k = i % nenormal;
+    if (i < 0)
+      j--;
+    if (k < 0)
+      k += nenormal;
+    float ex = powf(10., ielog + j);
+    vnumber.push_back(miutil::from_number(enormal[k] * ex));
+  }
+  return vnumber;
+}
+
+} // namespace diutil

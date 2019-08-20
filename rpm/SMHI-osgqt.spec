@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.6.3
-%define release 1.6
+%define release 1.8.1
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}
@@ -131,6 +131,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Aug 20 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- The flag --run-on-demand to viewer to avoid excessive CPU consuming.
+* Mon Aug 19 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- Default properties implemented, bugs fixed and code cleaned up.
+* Thu Jul 11 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- Multiselection implemented in Referencetime list box, bugs fixed and code cleaned up.
 * Wed Jul 10 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
 - OpenSceneGraph 3.6.3, Qt 5.8, setupfile, select referencetime i dialog like filedialog in Diana
 * Mon Apr 23 2018 Yngve Einarsson <Yngve.Einarsson@smhi.se>

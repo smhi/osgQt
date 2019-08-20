@@ -250,7 +250,12 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
 {
     osgUtil::Optimizer optimizer;
     optimizer.optimize(node);
- 
+    osgVolume::ImageLayer* imageLayer = 0;
+    // adjust default values from osgvolume
+    float def_afProperty_value = 1.7e-06; 
+    float def_tpProperty_value = 2.0;
+    float def_sampleDensityProperty_value = .0015;
+    float def_isoProperty_value = .006;
     if(m_root->getNumChildren()) {
         // Get properties from old node
         // see examples/osgtransferfunction.cpp
@@ -270,14 +275,10 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
           float tpProperty_value = -1.0;
           float sampleDensityProperty_value = -1.0;
           float isoProperty_value = -1.0;
-          /*
-          float mipProperty_value = -1.0;
-          float lightingProperty_value = -1.0;
-          */
-          osgVolume::ImageLayer* imageLayer = 0;
+          
           FindVolumeTiles fvt;
           oldnode->accept(fvt);
-
+          imageLayer = 0;
           if (!fvt._tiles.empty())
           {
             osgVolume::VolumeTile* tile = fvt._tiles[0].get();
@@ -303,16 +304,6 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
               if (cpv._isoProperty.valid()) {
                 isoProperty_value=cpv._isoProperty->getValue();
               }
-              /*
-              Not scalar properties.
-              if (cpv._mipProperty.valid()) {
-                mipProperty_value=cpv._mipProperty->getValue();
-              }
-              if (cpv._lightingProperty.valid()) {
-                lightingProperty_value=cpv._lightingProperty->getValue();
-              }
-              */
-
             }
           }
           imageLayer = 0;
@@ -348,23 +339,89 @@ void OsgWidget::updateScene( osg::Node* node, std::string oldFileName, std::stri
                 if (isoProperty_value != -1.0)
                   cpv._isoProperty->setValue(isoProperty_value);
               }
-              /*
-              Not scalar properties
-              if (cpv._mipProperty.valid()) {
-                if (mipProperty_value != -1.0)
-                  cpv._mipProperty->setValue(mipProperty_value);
-              }
-              if (cpv._lightingProperty.valid()) {
-                if (lightingProperty_value != -1.0)
-                  cpv._lightingProperty->setValue(lightingProperty_value);
-              }
-              */
-              
             }
           }
         } // End dir names equal
+        else {
+          /* 
+          set more suitable property values than the existing from osgvolume.        
+          */
+          imageLayer = 0;
+          FindVolumeTiles fvtn;
+          node->accept(fvtn);
+
+          if (!fvtn._tiles.empty())
+          {
+            osgVolume::VolumeTile* tile = fvtn._tiles[0].get();
+            imageLayer = dynamic_cast<osgVolume::ImageLayer*>(tile->getLayer());
+            tile->addEventCallback(new osgVolume::PropertyAdjustmentCallback());
+          }
+          if (imageLayer)
+          {
+            osgVolume::Property* property = imageLayer->getProperty();
+            if (property)
+            {
+              osgVolume::CollectPropertiesVisitor cpv;
+              property->accept(cpv);
+              if (cpv._afProperty.valid()) {
+                if (def_afProperty_value != -1.0)
+                  cpv._afProperty->setValue(def_afProperty_value);
+              }
+              if (cpv._transparencyProperty.valid()) {
+                if (def_tpProperty_value != -1.0)
+                  cpv._transparencyProperty->setValue(def_tpProperty_value);
+              }
+              if (cpv._sampleDensityProperty.valid()) {
+                if (def_sampleDensityProperty_value != -1.0)
+                  cpv._sampleDensityProperty->setValue(def_sampleDensityProperty_value);
+              }
+              if (cpv._isoProperty.valid()) {
+                if (def_isoProperty_value != -1.0)
+                  cpv._isoProperty->setValue(def_isoProperty_value);
+              }
+            }
+          }   
+        }
         m_root->replaceChild(m_root->getChild(0),node);      
     } else {
+        /* 
+        set more suitable property values than the existing from osgvolume.        
+        */
+        imageLayer = 0;
+        FindVolumeTiles fvtn;
+        node->accept(fvtn);
+
+        if (!fvtn._tiles.empty())
+        {
+          osgVolume::VolumeTile* tile = fvtn._tiles[0].get();
+          imageLayer = dynamic_cast<osgVolume::ImageLayer*>(tile->getLayer());
+          tile->addEventCallback(new osgVolume::PropertyAdjustmentCallback());
+        }
+        if (imageLayer)
+        {
+          osgVolume::Property* property = imageLayer->getProperty();
+          if (property)
+          {
+            osgVolume::CollectPropertiesVisitor cpv;
+            property->accept(cpv);
+            if (cpv._afProperty.valid()) {
+              if (def_afProperty_value != -1.0)
+                cpv._afProperty->setValue(def_afProperty_value);
+            }
+            if (cpv._transparencyProperty.valid()) {
+              if (def_tpProperty_value != -1.0)
+                cpv._transparencyProperty->setValue(def_tpProperty_value);
+            }
+            if (cpv._sampleDensityProperty.valid()) {
+              if (def_sampleDensityProperty_value != -1.0)
+                cpv._sampleDensityProperty->setValue(def_sampleDensityProperty_value);
+            }
+            if (cpv._isoProperty.valid()) {
+              if (def_isoProperty_value != -1.0)
+                cpv._isoProperty->setValue(def_isoProperty_value);
+            }
+          }
+        }
         m_root->addChild(node);
     }
    

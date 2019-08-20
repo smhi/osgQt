@@ -27,5 +27,5 @@ else
     export RADAR3D=/data/24/dianasys/datadir/radar3d
     export DIANAETC=/data/24/dianasys/server/local/etc/diana
 fi
-$VGLRUN ./osgQtWidget -s ${DIANAETC}/diana.setup-SMHI-3D
+$VGLRUN ./osgQtWidget --run-on-demand -s ${DIANAETC}/diana.setup-SMHI-3D
 exit

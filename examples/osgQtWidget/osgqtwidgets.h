@@ -147,5 +147,10 @@ class MainWidget : public QMainWindow
   ClientSelection   * pluginB;
   ModelManager * m_ModelManager;
   friendlyDialog * m_friendlyDialog;
+  // The viewer
+  OsgWidget* m_viewer;
+  // The run mode
+  osgViewer::ViewerBase::FrameScheme m_oldframeScheme;
+  
 };
 #endif // _OSGWIDGET_H_

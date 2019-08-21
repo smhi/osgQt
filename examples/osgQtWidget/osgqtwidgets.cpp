@@ -461,13 +461,13 @@ MainWidget::MainWidget(int argc, char *argv[])
     m_friendlyDialog = new friendlyDialog(this, m_ModelManager);
     connect(m_friendlyDialog, SIGNAL(dialogApply()), this, SLOT(getSelectedModelFileInfo()));
     
-    OsgWidget* viewer=new OsgWidget(arguments);
-    QWidget* widget=viewer->getWidget();
+    m_viewer=new OsgWidget(arguments);
+    QWidget* widget=m_viewer->getWidget();
     widget->setMinimumSize(QSize(1024, 768));
     setCentralWidget(widget);
-    m_viewThread.reset(new ViewerFrameThread(viewer,true));
+    m_viewThread.reset(new ViewerFrameThread(m_viewer,true));
     m_updateOperation=new UpdateOperation();
-    viewer->addUpdateOperation(m_updateOperation);
+    m_viewer->addUpdateOperation(m_updateOperation);
     m_viewThread->start();
     setAcceptDrops(true);
 
@@ -579,8 +579,8 @@ MainWidget::MainWidget(int argc, char *argv[])
   clientbutton->setDefaultAction(pluginB->getToolButtonAction());
   timerToolbar->addWidget(clientbutton);
   
-  
-    setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
+  m_oldframeScheme=m_viewer->getRunFrameScheme();
+  setWindowTitle("osgQtWidget - Press SPACE first time you have loaded a model");
 }
 
 void MainWidget::getSelectedModelFileInfo()
@@ -603,6 +603,7 @@ void MainWidget::getSelectedModelFileInfo()
   currentIndex = 0;
   QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();    
   m_updateOperation->updateScene(fileName.toStdString());
+  m_viewer->requestRedraw();
   if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
     setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
   else
@@ -652,6 +653,7 @@ void MainWidget::openFile()
       setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     }
     m_updateOperation->updateScene(fileName.toStdString());
+    m_viewer->requestRedraw();
 }
 
 void MainWidget::fileQuit()
@@ -766,6 +768,8 @@ void MainWidget::stopAnimation()
 {
   timeBackwardAction->setChecked( false );
   timeForewardAction->setChecked( false );
+  // restore the initial frameScheme.
+  m_viewer->setRunFrameScheme(m_oldframeScheme);
   killTimer(animationTimer);
   currentIndex = 0;
   timeron=0;
@@ -816,6 +820,7 @@ void MainWidget::timerEvent(QTimerEvent *e)
     MainWidget::inUpdate = true;
     QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();    
     m_updateOperation->updateScene(fileName.toStdString());
+    m_viewer->requestRedraw();
     if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
       setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     else
@@ -829,7 +834,8 @@ void MainWidget::animation()
     stopAnimation();
 
   timeForewardAction->setChecked( true );
-  //currentIndex = 0;
+  // We need continous update in order to get anamation to work
+  m_viewer->setRunFrameScheme(osgViewer::ViewerBase::FrameScheme::CONTINUOUS);
   animationTimer= startTimer(timeout_ms);
   timeron=1;
 }
@@ -840,7 +846,8 @@ void MainWidget::animationBack()
     stopAnimation();
 
   timeBackwardAction->setChecked( true );
-  //currentIndex = m_fileNames.size() - 1;
+  // We need continous update in order to get anamation to work
+  m_viewer->setRunFrameScheme(osgViewer::ViewerBase::FrameScheme::CONTINUOUS);
   animationTimer= startTimer(timeout_ms);
   timeron=-1;
 }
@@ -858,6 +865,7 @@ void MainWidget::stepforward()
     currentIndex = 0;
   QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
   m_updateOperation->updateScene(fileName.toStdString());
+  m_viewer->requestRedraw();
   if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
       setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     else
@@ -873,6 +881,7 @@ void MainWidget::stepback()
     currentIndex = m_selectedModelInfo.modelFiles.size() - 1;
   QString fileName = m_selectedModelInfo.modelFiles[currentIndex].fileName.c_str();
   m_updateOperation->updateScene(fileName.toStdString());
+  m_viewer->requestRedraw();
   if (m_selectedModelInfo.modelFiles[currentIndex].refTime.size() == 0)
       setWindowTitle(QString("osgQtWidget - ") + m_selectedModelInfo.modelName.c_str() + QString(" ") + fileName.mid(fileName.lastIndexOf('/') + 1));
     else
@@ -1109,7 +1118,6 @@ void UpdateOperation::operator()( osg::Object* callingObject )
 {
     // decided which method to call according to whole has called me.
     // FIXME: Keep sittings from previous scene if applicable.
-    
     if(m_loadedFlag) {
       if (m_newScene) {
         OsgWidget* viewer = dynamic_cast<OsgWidget*>(callingObject);
@@ -1136,9 +1144,11 @@ void UpdateOperation::operator()( osg::Object* callingObject )
             OSG_WARN<<m_nodeFileName<<" load failed.\n";
         }
         m_loadedFlag=true;
+        //MainWidget::inUpdate = false;
         QApplication::restoreOverrideCursor();
         
     }
+    
 }
 
 std::string UpdateOperation::getNodeFileName()

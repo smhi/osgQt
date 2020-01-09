@@ -24,7 +24,7 @@
 #include <osgDB/FileUtils>
 #include <osgDB/ReaderWriter>
 
-#include <osgUtil/TriStripVisitor>
+//#include <osgUtil/TriStripVisitor>
 #include <osgUtil/SmoothingVisitor>
 #include <osg/TriangleFunctor>
 #include <osg/ShapeDrawable>
@@ -33,6 +33,7 @@
 #include <osg/LightSource>
 #include <osg/BoundingBox>
 #include <osg/ComputeBoundsVisitor>
+#include <osgUtil/Optimizer>
 
 #include <osgVolume/Volume>
 #include <osgVolume/VolumeTile>

@@ -31,6 +31,7 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
 /**
    \brief the setup file parser

@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.6.3
-%define release 1.8.1
+%define release 1.8.2
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}
@@ -24,7 +24,7 @@ osgQt lib and executables %{appname}
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr
 cd $RPM_BUILD_ROOT/usr
-tar xvzf $RPM_SOURCE_DIR/SMHI-osgQt.tar.gz
+tar xvzf $RPM_SOURCE_DIR/SMHI-osgQt/SMHI-osgQt.tar.gz
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -49,12 +49,10 @@ rm -rf $RPM_BUILD_ROOT
    /usr/include/metlibs/miLogger/miLogging.h
    /usr/include/metlibs/miLogger/miLoggingLog4Cpp.h
    /usr/include/metlibs/miLogger/miLoggingLogger.h
-   /usr/include/metlibs/miLogger/miLoggingNone.h
    /usr/include/metlibs/miLogger/miLoggingScopes.h
    /usr/include/metlibs/miLogger/miLoggingSimple.h
-   /usr/include/metlibs/miLogger/miLoggingStringRecord.h
    /usr/include/metlibs/miLogger/miLoggingSystem.h
-   /usr/include/metlibs/miLogger/miLoggingUtils.h
+   /usr/include/metlibs/miLogger/miLoggingMemory.h
    /usr/include/metlibs/puCtools/bool.h
    /usr/include/metlibs/puCtools/deprecated.h
    /usr/include/metlibs/puCtools/getopt.h
@@ -99,24 +97,24 @@ rm -rf $RPM_BUILD_ROOT
    /usr/include/osgQt/QWebViewImage
    /usr/include/osgQt/QWidgetImage
    /usr/include/osgQt/Version
-   /usr/lib64/libmetlibs-coserver-qt5.so
-   /usr/lib64/libmetlibs-coserver-qt5.so.3
-   /usr/lib64/libmetlibs-coserver-qt5.so.3.0.2
-   /usr/lib64/libmetlibs-milogger.so
-   /usr/lib64/libmetlibs-milogger.so.6
-   /usr/lib64/libmetlibs-milogger.so.6.0.3
-   /usr/lib64/libmetlibs-puctools.so
-   /usr/lib64/libmetlibs-puctools.so.6
-   /usr/lib64/libmetlibs-puctools.so.6.0.0
+   /usr/lib64/libmetlibs-coserver-qt5.so     
+   /usr/lib64/libmetlibs-coserver-qt5.so.3      
+   /usr/lib64/libmetlibs-coserver-qt5.so.3.0.3  
+   /usr/lib64/libmetlibs-milogger.so            
+   /usr/lib64/libmetlibs-milogger.so.6          
+   /usr/lib64/libmetlibs-milogger.so.6.1.1      
+   /usr/lib64/libmetlibs-puctools.so            
+   /usr/lib64/libmetlibs-puctools.so.6          
+   /usr/lib64/libmetlibs-puctools.so.6.0.1      
    /usr/lib64/libmetlibs-putools.so
    /usr/lib64/libmetlibs-putools.so.8
-   /usr/lib64/libmetlibs-putools.so.8.1.1
+   /usr/lib64/libmetlibs-putools.so.8.1.4
    /usr/lib64/libmetlibs-qutilities-qt5.so
    /usr/lib64/libmetlibs-qutilities-qt5.so.8
-   /usr/lib64/libmetlibs-qutilities-qt5.so.8.0.0
+   /usr/lib64/libmetlibs-qutilities-qt5.so.8.0.1
    /usr/lib64/libosgQt.so
-   /usr/lib64/libosgQt.so.158
-   /usr/lib64/libosgQt.so.3.6.3
+   /usr/lib64/libosgQt.so.200
+   /usr/lib64/libosgQt.so.3.7.0
    /usr/lib64/pkgconfig/coserver.pc
    /usr/lib64/pkgconfig/metlibs-coserver-qt5.pc
    /usr/lib64/pkgconfig/metlibs-milogger.pc
@@ -131,6 +129,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Oct  5 2023 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- ELIN6
 * Tue Aug 20 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
 - The flag --run-on-demand to viewer to avoid excessive CPU consuming.
 * Mon Aug 19 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>

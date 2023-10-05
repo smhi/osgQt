@@ -16,7 +16,7 @@ RADAR3D=/data/24/dianasys/datadir/radar3d
 DIANAETC=/data/24/dianasys/server/local/etc/diana
 if [ "$SMHI_MODE" == "utv" ]; then
     export RADAR3D=/data/proj/diana/datadir/radar3d
-    export DIANAETC=/data/proj/diana/diana_qt5/current/server/local/etc/diana
+    export DIANAETC=/data/proj/diana/diana_elin5/current/server/local/etc/diana
 elif [ "$SMHI_MODE" == "test" ]; then
     export RADAR3D=/data/prodtest/dianasys/datadir/radar3d
     export DIANAETC=/data/prodtest/dianasys/server/local/etc/diana

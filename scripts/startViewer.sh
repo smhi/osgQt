@@ -12,20 +12,27 @@ if [ "x$VGLTEST" == "x" ]; then
   VGLRUN="vglrun -d :0.$gpu_to_use"
   echo "$VGLRUN"
 fi
-RADAR3D=/data/24/dianasys/datadir/radar3d
-DIANAETC=/data/24/dianasys/server/local/etc/diana
-if [ "$SMHI_MODE" == "utv" ]; then
-    export RADAR3D=/data/proj/diana/datadir/radar3d
-    export DIANAETC=/data/proj/diana/diana_elin5/current/server/local/etc/diana
-elif [ "$SMHI_MODE" == "test" ]; then
+# If no DIANAROOT, use defaults
+if [ "x${DIANAROOT}" == "x" ]
+then
+  RADAR3D=/data/24/dianasys/datadir/radar3d
+  DIANAETC=/data/24/dianasys/server/local/etc/diana
+  if [ "$SMHI_MODE" == "utv" ]; then
+    export RADAR3D=/data/utv/diana/datadir/radar3d
+    export DIANAETC=/data/utv/diana/diana_elin6/current/server/local/etc/diana
+  elif [ "$SMHI_MODE" == "test" ]; then
     export RADAR3D=/data/prodtest/dianasys/datadir/radar3d
     export DIANAETC=/data/prodtest/dianasys/server/local/etc/diana
-elif [ "$SMHI_MODE" == "prod" ]; then
+  elif [ "$SMHI_MODE" == "prod" ]; then
     export RADAR3D=/data/24/dianasys/datadir/radar3d
     export DIANAETC=/data/24/dianasys/server/local/etc/diana
+  else
+    export RADAR3D=/data/24/dianasys/datadir/radar3d
+    export DIANAETC=/data/24/dianasys/server/local/etc/diana
+  fi
 else
-    export RADAR3D=/data/24/dianasys/datadir/radar3d
-    export DIANAETC=/data/24/dianasys/server/local/etc/diana
+  RADAR3D=${DIANAROOT}/datadir/radar3d
+  DIANAETC=${DIANAROOT}/server/local/etc/diana
 fi
 $VGLRUN ./osgQtWidget --run-on-demand -s ${DIANAETC}/diana.setup-SMHI-3D
 exit

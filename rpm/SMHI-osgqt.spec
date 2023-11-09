@@ -1,7 +1,7 @@
 %define appname SMHI-osgQt
 %define name SMHI-osgQt
 %define version 3.6.3
-%define release 1.8.2
+%define release 1.8.5
 %define vendor	smhi.se
 
 Summary: Systemd unit file for %{appname}
@@ -129,6 +129,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Nov  9 2023 Yngve Einarsson <Yngve.Einarsson@smhi.se>
+- Environment DIANADIR, typically /data/24/dianasys
 * Thu Oct  5 2023 Yngve Einarsson <Yngve.Einarsson@smhi.se>
 - ELIN6
 * Tue Aug 20 2019 Yngve Einarsson <Yngve.Einarsson@smhi.se>
